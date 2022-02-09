@@ -19,6 +19,7 @@ vector<string> use_list;
 vector<string> symbol_name;
 vector<string> symbol_value;
 //int absolute_address[1];
+
 void error_message(int ruleBroken){
 		if (ruleBroken == 8) {
 			cout<<"Error: Absolute address exceeds machine size; zero used";
@@ -247,6 +248,7 @@ void pass1(){
     char *dup;
     char *dup1;
     int module_size = -1;
+  
     ifstream f;
     string buffer;
     string str;
@@ -349,6 +351,7 @@ void pass2(){
     int module_size = -1;
     int flag = 0;
     string possible_uselist = "";
+
     ifstream f;
     string buffer;
     string str;
@@ -380,6 +383,7 @@ void pass2(){
             //     ; // Do nothing
             // }
             module_size = stoi(str_tok);
+
         }
         if (module_size > 0){
             if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
@@ -460,6 +464,7 @@ void pass2(){
         str = reduce(str);
     }
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////
 
