@@ -20,151 +20,88 @@ vector<string> symbol_name;
 vector<string> symbol_value;
 //int absolute_address[1];
 
-class ErrorWarning {
-	int ruleBroken;
-	int module;
-	int address;
-	int max;
-	string sym;
-public:
-	void setMod(int m) {
-		module = m;
-	}
-	void setAddr(int a) {
-		address = a;
-	}
-	void setMax(int m) {
-		max = m;
-	}
-	void setSym(string s) {
-		sym = s;
-	}
-	string getName() {
-		return sym;
-	}
-	void setRule(int r) {
-		ruleBroken = r;
-	}
-	int getRule() {
-		return ruleBroken;
-	}
-	string msgString() {
+void error_message(int ruleBroken){
 		if (ruleBroken == 8) {
-			return  "Error: Absolute address exceeds machine size; zero used";
+			cout<<"Error: Absolute address exceeds machine size; zero used";
 		}
 		if (ruleBroken == 9) {
-			return "Error: Relative address exceeds module size; zero used";
+			cout<< "Error: Relative address exceeds module size; zero used";
 		}
 		if (ruleBroken == 6) {
-			return "Error: External address exceeds length of uselist; treated as immediate";
+			cout<< "Error: External address exceeds length of uselist; treated as immediate";
 		}
-		if (ruleBroken==3) {
-			return ("Error: " + sym + " is not defined; zero used");
-		}
+		// if (ruleBroken==3) {
+		// 	cout<< ("Error: " + sym + " is not defined; zero used");
+		// }
 		if (ruleBroken==2) {
-			return "Error: This variable is multiple times defined; first value used";
+			cout<< "Error: This variable is multiple times defined; first value used";
 		}
 		if (ruleBroken==10) {
-			return "Error: Illegal immediate value; treated as 9999";
+			cout<< "Error: Illegal immediate value; treated as 9999";
 		}
 		if (ruleBroken==11) {
-			return "Error: Illegal opcode; treated as 9999";
+			cout<< "Error: Illegal opcode; treated as 9999";
 		}
-		if (ruleBroken==5) {
-			return ("Warning: Module "+to_string(module+1)+": "+sym+" to big "+to_string(address)+" (max="+to_string(max)+") assume zero relative");
-		}
-		if (ruleBroken==7) {
-			return ("Warning: Module "+to_string(module+1)+": "+sym+" appeared in the uselist but was not actually used");
-		}
-		if (ruleBroken==4) {
-			return ("Warning: Module "+to_string(module+1)+": "+sym+" was defined but never used");
-		}
-		return "NONE";
-	}
+		// if (ruleBroken==5) {
+		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" to big "+to_string(address)+" (max="+to_string(max)+") assume zero relative");
+		// }
+		// if (ruleBroken==7) {
+		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" appeared in the uselist but was not actually used");
+		// }
+		// if (ruleBroken==4) {
+		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" was defined but never used");
+		// 
+}
 	
-};
 
 
-// void __parseerror(int errcode) {
-//     static char* errstr[] = {
-//         "NUM_EXPECTED",
-//         "SYM_EXPECTED",
-//         "ADDR_EXPECTED",
-//         "SYM_TOO_LONG",
-//         "TOO_MANY_DEF_IN_MODULE",
-//         "TOO_MANY_USE_IN_MODULE",
-//         "TOO_MANY_INSTR", };
-//     printf("Parse Error line %d offset %d: %s\n", linenum, lineoffset, errstr[errcode]); 
+
+// int linePos(string str){
+//     ifstream f;
+//     string buffer;
+//     int offset;
+//     int i = 1;
+    
+//     f.open(filename);
+//     while(getline(f, buffer)){
+//         //cout<<buffer;
+//         offset = buffer.find(str);
+
+//         if (offset != -1){
+//             return i;
+//         }
+//         else{
+//             //getline(f, buffer);
+//             i++;
+//             continue;
+//         }
+
+//     }
+//     return -1;
 // }
-
-// Pass1() {
-//       while (!eof) {
-//             createModule();
-//             int defcount = readInt();
-//             for (int i=0;i<defcount;i++) {
-//                  Symbol sym = readSym();
-//                  int val = readInt();
-//                  createSymbol(sym,val);
-//             }
-//             int usecount = readInt();
-//             for (int i=0;i<usecount;i++) {
-//                   Symbol sym = readSym();
-//             }
-//             int instcount = readInt();
-//             for (int i=0;i<instcount;i++) {
-//                  char addressmode = ReadIEAR();
-//                  int  operand = ReadInt();
-//             }
-//       }
-
-// } 
-
-int linePos(string str){
-    ifstream f;
-    string buffer;
-    int offset;
-    int i = 1;
+// int parser(string str){
+//     ifstream f;
+//     string buffer;
+//     int offset;
+//     //int i = 1;
     
-    f.open(filename);
-    while(getline(f, buffer)){
-        //cout<<buffer;
-        offset = buffer.find(str);
+//     f.open(filename);
+//     while(getline(f, buffer)){
+//         //cout<<buffer;
+//         offset = buffer.find(str);
+//         cout<< buffer<<endl;
+//         if (offset != -1){
+//             return offset + 1;
+//         }
+//         else{
+//             //getline(f, buffer);
+//             //i++;
+//             continue;
+//         }
 
-        if (offset != -1){
-            return i;
-        }
-        else{
-            //getline(f, buffer);
-            i++;
-            continue;
-        }
-
-    }
-    return -1;
-}
-int parser(string str){
-    ifstream f;
-    string buffer;
-    int offset;
-    //int i = 1;
-    
-    f.open(filename);
-    while(getline(f, buffer)){
-        //cout<<buffer;
-        offset = buffer.find(str);
-        cout<< buffer<<endl;
-        if (offset != -1){
-            return offset + 1;
-        }
-        else{
-            //getline(f, buffer);
-            //i++;
-            continue;
-        }
-
-    }
-    return -1;
-}
+//     }
+//     return -1;
+// }
 
 
 
@@ -184,7 +121,7 @@ void update_memory(){
 }
 void print_symbol_table(){
     //int num = symbolVal + offSet;
-    cout<< "Symbol Table : "<< endl;
+    cout<< "Symbol Table: "<< endl;
     for (int i = 0; i < symbol_value.size(); i++){
         cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << endl;
     }
@@ -195,15 +132,23 @@ int replace(int operand, int absolute_address){
 }
 void R_Instruction(int operand){
     int num = operand + relative_offSet;
-    cout<< memory<< " : " << num<< endl;
+    cout<< memory<< ": " << num<< endl;
     update_memory();
 }
 void I_Instruction(int operand){
-    cout<< memory<< " : " << operand<< endl;
+    if (operand > 9999){
+        operand = 9999;
+        error_message(10);
+    }
+    cout<< memory<< ": " << operand<< endl;
     update_memory();
 }
 void A_Instruction(int operand){
-    cout<< memory<< " : " << operand<< endl;
+    int num = operand % 1000;
+    if (num > Max_Memory){
+        ;
+    }
+    cout<< memory<< ": " << operand<< endl;
     update_memory();
 }
 void E_Instruction(int operand){
@@ -213,13 +158,13 @@ void E_Instruction(int operand){
     int index = operand % 1000;
     //cout<< "index " << index << endl;
     //cout<< "use_list" << use_list.at(index)<< endl;
-    cout<< "use_list " << use_list.at(index) << endl;
+    //cout<< "use_list " << use_list.at(index) << endl;
     std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), use_list.at(index));
     int index1 = distance(symbol_name.begin(), itr);
-    cout<< "index " << index1 << endl;
+    //cout<< "index " << index1 << endl;
     int absolute_address = stoi(symbol_value.at(index1));
     int num = replace(operand, absolute_address);
-    cout<<memory<<" : " << num<< endl;
+    cout<<memory<<": " << num<< endl;
     update_memory();
 }
 void insert_symbolvalue(string str, int address){
@@ -270,20 +215,6 @@ std::string reduce(const std::string& str,
     return result;
 }
 
-// void pass1(){
-//     ifstream f;
-//     string buffer;
-//     int offset;
-    
-//     f.open(filename);
-//     while(getline(f, buffer)){
-//         for (int i = 0; i < (buffer.length() - 1); i++){
-//             if (isalnum(buffer[i])){
-//                 offSet = getOffset(buffer[i]);
-//             }
-//         }
-//     }
-// }
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool is_digits(const std::string &str)
@@ -317,6 +248,7 @@ void pass1(){
     char *dup;
     char *dup1;
     int module_size = -1;
+  
     ifstream f;
     string buffer;
     string str;
@@ -327,10 +259,10 @@ void pass1(){
         for(int i = 0; i < buffer.length(); i ++){
             str.push_back(buffer.at(i));
         }
-        //str.push_back(' ');
+        str.push_back(' ');
     }
     f.close();
-    cout << str << endl;
+    //cout << str << endl;
     while(str.length() > 1){
         str_tmp = str;
         dup = strdup(str.c_str());
@@ -405,26 +337,7 @@ void pass1(){
     print_symbol_table();
 }
 
-
-
-///////////////////////////////////////////////////////////////////////////////////
-
-int main(int argc, char** argv){
-    filename = argv[1];
-    // line_num = 0;
-    // //parser1(argv[1]);
-    // int symbolVal = 2;
-    // offSet = 6;
-    memory = "000";
-    relative_offSet = 0;
-    
-    string str = "1 xy 2 2 z xy 5 R 1004 I 5678      E 2000 R 8002 E 7001 0      1 z 6   R \n \n 8001 E 1000 E 1000 E 3000 R 1002 A 1010 0 1 z 2 R 5001 E 4000 1 z 2 2 xy z 3 A 8000 E 1001 E 2000";
-    pass1();
-//     return 0;
-// }
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ pass 2
-    memory = "000";
-    relative_offSet = 0;
+void pass2(){
     string str_tmp = "";
     char delim[] = " \t\n";
     char *tok_bck;
@@ -438,6 +351,20 @@ int main(int argc, char** argv){
     int module_size = -1;
     int flag = 0;
     string possible_uselist = "";
+
+    ifstream f;
+    string buffer;
+    string str;
+    //int relative_offset = 0;
+    f.open(filename);
+    while(getline(f, buffer)){
+        //cout<<buffer;
+        for(int i = 0; i < buffer.length(); i ++){
+            str.push_back(buffer.at(i));
+        }
+        str.push_back(' ');
+    }
+    f.close();
     while(str.length() > 1){
         str_tmp = str;
         dup = strdup(str.c_str());
@@ -456,6 +383,7 @@ int main(int argc, char** argv){
             //     ; // Do nothing
             // }
             module_size = stoi(str_tok);
+
         }
         if (module_size > 0){
             if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
@@ -519,7 +447,7 @@ int main(int argc, char** argv){
                         use_list.push_back(possible_uselist);
                     }
                     if (flag == 1){
-                        cout<< "use_list"<< use_list.at(0)<< endl;
+                        //cout<< "use_list"<< use_list.at(0)<< endl;
                         use_list.clear();
                         flag = 0;
                     }
@@ -535,5 +463,24 @@ int main(int argc, char** argv){
         last_tok = str_tok;
         str = reduce(str);
     }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+
+int main(int argc, char** argv){
+    filename = argv[1];
+
+    memory = "000";
+    relative_offSet = 0;
+    
+    pass1();
+//     return 0;
+// }
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ pass 2
+    memory = "000";
+    relative_offSet = 0;
+    cout<<"Memory Map"<< endl;
+    pass2();
      return 0;
-     }
+}
