@@ -20,6 +20,7 @@ vector<string> use_list;
 vector<string> symbol_name;
 vector<string> symbol_value;
 vector<int> flag_uselist;
+vector<string> deflist;
 //int absolute_address[1];
 
 void error_message(int ruleBroken){
@@ -44,6 +45,7 @@ void error_message(int ruleBroken){
 		if (ruleBroken==11) {
 			cout<< "Error: Illegal opcode; treated as 9999"<<endl;
 		}
+
 		// if (ruleBroken==5) {
 		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" to big "+to_string(address)+" (max="+to_string(max)+") assume zero relative")<<endl;
 		// }
@@ -87,7 +89,13 @@ void print_symbol_table(){
     //int num = symbolVal + offSet;
     cout<< "Symbol Table: "<< endl;
     for (int i = 0; i < symbol_value.size(); i++){
-        cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << endl;
+        if(find(deflist.begin(), deflist.end(), symbol_name.at(i)) != deflist.end()) {
+            cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << " ";
+            error_message(2);
+        }
+        else{
+            cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << endl;
+        }
     }
 }
 int replace(int operand, int absolute_address){
@@ -117,7 +125,7 @@ void I_Instruction(int operand){
     if (operand > 9999){
         operand = 9999;
         cout<< memory<< ": " << operand<< " ";       
-        error_message(10);
+        error_message(11);
     }
     else{
         cout<< memory<< ": " << operand<< endl;
@@ -165,12 +173,17 @@ void E_Instruction(int operand){
     }
     update_memory();
 }
-void insert_symbolvalue(string str, int address){
+void set_symbolvalue(string str, int address){
     vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), str);
  
     if (itr != symbol_name.cend()) {
         int index = distance(symbol_name.begin(), itr);
-        symbol_value.at(index) = to_string(address);
+        if (symbol_value.at(index) != "-"){
+            deflist.push_back(symbol_name.at(index));
+        }
+        else{
+            symbol_value.at(index) = to_string(address);
+        }
         
     }
     else {
@@ -301,8 +314,6 @@ void pass1(){
                 module_size -= 1;
                 //cout << "alan: " << str_tok <<" next_tok: " << next_tok <<" rel: " << relative_offSet <<endl;
                 update_memory();
-
- 
                 str = str_tmp;
             }
             std::string s;
@@ -312,9 +323,9 @@ void pass1(){
             relative_offSet = stoi(memory);
             if (is_digits(str_tok) && str_tok != "0"){
                 if (is_digits(next_tok)){
-                    int tmp = stoi(str_tok) + relative_offSet;
+                    int tmp = stoi(str_tok) + stoi(memory);
                     //symbol_value.push_back(to_string(tmp));
-                    insert_symbolvalue(last_tok, tmp);
+                    set_symbolvalue(last_tok, tmp);
                     module_size = -100;
                 }
                 else{
@@ -440,7 +451,8 @@ void pass2(){
                         possible_uselist = "";
                     }
                     //symbol_value.push_back(to_string(tmp));
-                    insert_symbolvalue(last_tok, tmp);
+                    //------------------------------------------------------------- commented the next line to see if it's necessary in pass2
+                    //set_symbolvalue(last_tok, tmp);
                     module_size = -1;
                 }
                 else{
