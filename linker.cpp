@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include<algorithm>
 using namespace std;
 
 //static const string& file_name;
@@ -18,91 +19,41 @@ string memory;
 vector<string> use_list;
 vector<string> symbol_name;
 vector<string> symbol_value;
+vector<int> flag_uselist;
 //int absolute_address[1];
 
 void error_message(int ruleBroken){
 		if (ruleBroken == 8) {
-			cout<<"Error: Absolute address exceeds machine size; zero used";
+			cout<<"Error: Absolute address exceeds machine size; zero used"<<endl;
 		}
 		if (ruleBroken == 9) {
-			cout<< "Error: Relative address exceeds module size; zero used";
+			cout<< "Error: Relative address exceeds module size; zero used"<<endl;
 		}
 		if (ruleBroken == 6) {
-			cout<< "Error: External address exceeds length of uselist; treated as immediate";
+			cout<< "Error: External address exceeds length of uselist; treated as immediate"<<endl;
 		}
 		// if (ruleBroken==3) {
-		// 	cout<< ("Error: " + sym + " is not defined; zero used");
+		// 	cout<< ("Error: " + sym + " is not defined; zero used")<<endl;
 		// }
 		if (ruleBroken==2) {
-			cout<< "Error: This variable is multiple times defined; first value used";
+			cout<< "Error: This variable is multiple times defined; first value used"<<endl;
 		}
 		if (ruleBroken==10) {
-			cout<< "Error: Illegal immediate value; treated as 9999";
+			cout<< "Error: Illegal immediate value; treated as 9999"<<endl;
 		}
 		if (ruleBroken==11) {
-			cout<< "Error: Illegal opcode; treated as 9999";
+			cout<< "Error: Illegal opcode; treated as 9999"<<endl;
 		}
 		// if (ruleBroken==5) {
-		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" to big "+to_string(address)+" (max="+to_string(max)+") assume zero relative");
+		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" to big "+to_string(address)+" (max="+to_string(max)+") assume zero relative")<<endl;
 		// }
 		// if (ruleBroken==7) {
-		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" appeared in the uselist but was not actually used");
+		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" appeared in the uselist but was not actually used")<<endl;
 		// }
 		// if (ruleBroken==4) {
-		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" was defined but never used");
+		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" was defined but never used")<<endl;
 		// 
 }
-	
-
-
-
-// int linePos(string str){
-//     ifstream f;
-//     string buffer;
-//     int offset;
-//     int i = 1;
-    
-//     f.open(filename);
-//     while(getline(f, buffer)){
-//         //cout<<buffer;
-//         offset = buffer.find(str);
-
-//         if (offset != -1){
-//             return i;
-//         }
-//         else{
-//             //getline(f, buffer);
-//             i++;
-//             continue;
-//         }
-
-//     }
-//     return -1;
-// }
-// int parser(string str){
-//     ifstream f;
-//     string buffer;
-//     int offset;
-//     //int i = 1;
-    
-//     f.open(filename);
-//     while(getline(f, buffer)){
-//         //cout<<buffer;
-//         offset = buffer.find(str);
-//         cout<< buffer<<endl;
-//         if (offset != -1){
-//             return offset + 1;
-//         }
-//         else{
-//             //getline(f, buffer);
-//             //i++;
-//             continue;
-//         }
-
-//     }
-//     return -1;
-// }
-
 
 
 void update_memory(){
@@ -119,6 +70,19 @@ void update_memory(){
         }
     }
 }
+bool contains(vector<int> vec, int elem)
+{
+    bool result = false;
+    if( find(vec.begin(), vec.end(), elem) != vec.end() )
+    {
+        result = true;
+    }
+    return result;
+}
+int find_symbol_index(string symb, int index){
+    std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), use_list.at(index));
+    return distance(symbol_name.begin(), itr);
+}
 void print_symbol_table(){
     //int num = symbolVal + offSet;
     cout<< "Symbol Table: "<< endl;
@@ -130,41 +94,75 @@ int replace(int operand, int absolute_address){
     int temp = operand / 1000;
     return ((temp * 1000) + absolute_address);
 }
-void R_Instruction(int operand){
-    int num = operand + relative_offSet;
-    cout<< memory<< ": " << num<< endl;
+void R_Instruction(int operand, int mod){
+    int address = operand % 1000;
+    if (operand > 9999){
+        operand = 9999;
+        cout<< memory<< ": " << operand<< " ";       
+        error_message(10);
+    }
+    else if (mod < address ){
+        int opcode = operand / 1000;
+        int num = (opcode * 1000) + relative_offSet; 
+        cout<< memory<< ": " << num << " ";
+        error_message(9);
+    }
+    else{
+        int num = operand + relative_offSet;
+        cout<< memory<< ": " << num<< endl;
+    }
     update_memory();
 }
 void I_Instruction(int operand){
     if (operand > 9999){
         operand = 9999;
+        cout<< memory<< ": " << operand<< " ";       
         error_message(10);
     }
-    cout<< memory<< ": " << operand<< endl;
+    else{
+        cout<< memory<< ": " << operand<< endl;
+    }
     update_memory();
 }
 void A_Instruction(int operand){
     int num = operand % 1000;
-    if (num > Max_Memory){
-        ;
+    if (operand > 9999){
+        cout<< memory<< ": " << "9999 ";
+        error_message(10);
     }
-    cout<< memory<< ": " << operand<< endl;
+    else if(num > Max_Memory){
+        int opcode = operand / 1000;
+        operand = opcode * 1000;
+        cout<< memory<< ": " << operand<< " ";
+        error_message(8);
+    }
+    else{
+        cout<< memory<< ": " << operand<< endl;
+    }
     update_memory();
 }
 void E_Instruction(int operand){
-    // int opcode = operand / 1000;
-    // int i = (opcode * 1000) % operand;
-    // int num = replace(operand, stoi(symbol_value.at(i)));
-    int index = operand % 1000;
-    //cout<< "index " << index << endl;
-    //cout<< "use_list" << use_list.at(index)<< endl;
-    //cout<< "use_list " << use_list.at(index) << endl;
-    std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), use_list.at(index));
-    int index1 = distance(symbol_name.begin(), itr);
-    //cout<< "index " << index1 << endl;
-    int absolute_address = stoi(symbol_value.at(index1));
-    int num = replace(operand, absolute_address);
-    cout<<memory<<": " << num<< endl;
+    if (operand > 9999){
+        operand = 9999;
+        cout<< memory<< ": " << operand<< " ";       
+        error_message(10);
+    }
+    else{
+        int index = operand % 1000;
+        if (index > use_list.size() - 1){
+            cout<<memory<<": " << operand<< " ";
+            error_message(6);
+        }
+        else{
+            //std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), use_list.at(index));
+            flag_uselist.at(index) = 1;
+            //index = distance(symbol_name.begin(), itr);
+            index = find_symbol_index(use_list.at(index), index);
+            int absolute_address = stoi(symbol_value.at(index));
+            int num = replace(operand, absolute_address);
+            cout<<memory<<": " << num<< endl;
+        }
+    }
     update_memory();
 }
 void insert_symbolvalue(string str, int address){
@@ -247,7 +245,7 @@ void pass1(){
     string last_tok = "whatever";
     char *dup;
     char *dup1;
-    int module_size = -1;
+    int module_size = -100;
   
     ifstream f;
     string buffer;
@@ -262,7 +260,7 @@ void pass1(){
         str.push_back(' ');
     }
     f.close();
-    //cout << str << endl;
+    cout << str << endl;
     while(str.length() > 1){
         str_tmp = str;
         dup = strdup(str.c_str());
@@ -276,7 +274,7 @@ void pass1(){
         std::string next_tok = std::string(next_tok_char);
         free(dup1);
 ///////////////////////////////////////////////////
-        if (module_size == -1){
+        if (module_size == -100){
             // if (!(isdigit(tok))){
             //     ; // Do nothing
             // }
@@ -317,7 +315,7 @@ void pass1(){
                     int tmp = stoi(str_tok) + relative_offSet;
                     //symbol_value.push_back(to_string(tmp));
                     insert_symbolvalue(last_tok, tmp);
-                    module_size = -1;
+                    module_size = -100;
                 }
                 else{
                     module_size = stoi(str_tok);
@@ -348,9 +346,10 @@ void pass2(){
     string last_tok = "whatever";
     char *dup;
     char *dup1;
-    int module_size = -1;
+    int module_size = -100;
     int flag = 0;
     string possible_uselist = "";
+    int module_size_holder = 0;
 
     ifstream f;
     string buffer;
@@ -378,11 +377,12 @@ void pass2(){
         std::string next_tok = std::string(next_tok_char);
         free(dup1);
 ///////////////////////////////////////////////////
-        if (module_size == -1){
+        if (module_size == -100){
             // if (!(isdigit(tok))){
             //     ; // Do nothing
             // }
             module_size = stoi(str_tok);
+            module_size_holder = module_size;
 
         }
         if (module_size > 0){
@@ -396,6 +396,7 @@ void pass2(){
                     if (!(is_digits(next_tok))){
                         
                         use_list.push_back(str_tok);
+                        flag_uselist.push_back(0);
                         //cout<< use_list.at(0)<<endl;
                     }
                     else if (module_size == 1){
@@ -413,7 +414,8 @@ void pass2(){
                     E_Instruction(stoi(next_tok));
                 }
                 else if(str_tok == "R"){
-                    R_Instruction(stoi(next_tok));
+                    //cout<< "module_size_holder" << module_size_holder<< endl;
+                    R_Instruction(stoi(next_tok), module_size_holder);
                 }
                 else if(str_tok == "I"){
                     I_Instruction(stoi(next_tok));
@@ -443,12 +445,27 @@ void pass2(){
                 }
                 else{
                     module_size = stoi(str_tok);
+                    module_size_holder = module_size;
+                    if (contains(flag_uselist, 0)){
+                        for (int i = 0; i < flag_uselist.size(); i++){
+                            if(flag_uselist.at(i) == 0){
+                                int index = find_symbol_index(use_list.at(i), i);
+                                string symbol_not_used = symbol_name.at(index);
+                                if (possible_uselist == ""){
+                                    cout<<"Warning: "<<"???????????????????"<< symbol_not_used << " was defined but never used"<<endl;
+                                }
+                            }
+                        }
+                    }
+
                     if (possible_uselist != ""){
                         use_list.push_back(possible_uselist);
+                        flag_uselist.push_back(0);
                     }
                     if (flag == 1){
                         //cout<< "use_list"<< use_list.at(0)<< endl;
                         use_list.clear();
+                        flag_uselist.clear();
                         flag = 0;
                     }
                 }
@@ -480,7 +497,7 @@ int main(int argc, char** argv){
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ pass 2
     memory = "000";
     relative_offSet = 0;
-    cout<<"Memory Map"<< endl;
+    cout<<"Memory Map: "<< endl;
     pass2();
      return 0;
 }
