@@ -21,7 +21,6 @@ vector<string> symbol_name;
 vector<string> symbol_value;
 vector<int> flag_uselist;
 vector<string> deflist;
-//int absolute_address[1];
 
 void error_message(int ruleBroken){
 		if (ruleBroken == 8) {
@@ -92,6 +91,9 @@ void print_symbol_table(){
         if(find(deflist.begin(), deflist.end(), symbol_name.at(i)) != deflist.end()) {
             cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << " ";
             error_message(2);
+        }
+        else if (symbol_value.at(i) == "-"){
+            ;
         }
         else{
             cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << endl;
@@ -166,18 +168,25 @@ void E_Instruction(int operand){
             flag_uselist.at(index) = 1;
             //index = distance(symbol_name.begin(), itr);
             index = find_symbol_index(use_list.at(index), index);
-            int absolute_address = stoi(symbol_value.at(index));
-            int num = replace(operand, absolute_address);
-            cout<<memory<<": " << num<< endl;
+            if (symbol_value.at(index) == "-"){
+                int absolute_address = 0;
+                int num = replace(operand, absolute_address);
+                cout<<memory<<": " << num<< " Error: "<< symbol_name.at(index)<< " is not defined; zero used"<<endl;
+            }
+            else{
+                int absolute_address = stoi(symbol_value.at(index));
+                int num = replace(operand, absolute_address);
+                cout<<memory<<": " << num<< endl;
+            }
+            
         }
     }
     update_memory();
 }
 void set_symbolvalue(string str, int address){
     vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), str);
- 
+    int index = distance(symbol_name.begin(), itr);
     if (itr != symbol_name.cend()) {
-        int index = distance(symbol_name.begin(), itr);
         if (symbol_value.at(index) != "-"){
             deflist.push_back(symbol_name.at(index));
         }
@@ -186,8 +195,11 @@ void set_symbolvalue(string str, int address){
         }
         
     }
+    // To be fixed tomorrow
     else {
-        std::cout << "Element not found"<< endl;
+        ;
+        // cout<< "Error: "<< str<<" is not defined; zero used"<<endl;
+        // symbol_value.at(index) = to_string(0);
     }
 }
 std::string trim(const std::string& str,
@@ -254,8 +266,8 @@ void pass1(){
     char *tok;
     char *next_tok_char;
     // string last_tok = "gooz_init";
-    string next_tok = "gooz_init";
-    string last_tok = "whatever";
+    string next_tok = "empty";
+    string last_tok = "empty";
     char *dup;
     char *dup1;
     int module_size = -100;
@@ -273,7 +285,7 @@ void pass1(){
         str.push_back(' ');
     }
     f.close();
-    cout << str << endl;
+    //cout << str << endl;
     while(str.length() > 1){
         str_tmp = str;
         dup = strdup(str.c_str());
@@ -295,8 +307,16 @@ void pass1(){
         }
         if (module_size > 0){
             if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
-                if (is_digits(str_tok)){
-                    ;
+                // if (is_digits(str_tok)  && symbol_name.size() > 0 && (!is_digits(next_tok))){
+                //     if (last_tok == symbol_name.at(symbol_name.size() - 1)){
+                //         cout<< "last_tok "<< last_tok<<endl;
+                //         cout<< str_tok<<endl;
+                //         int number = stoi(str_tok) + stoi(memory);
+                //         set_symbolvalue(last_tok, number);
+                //     }
+                if (is_digits(str_tok) && (!is_digits(next_tok) && str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I")){
+                    int number = stoi(str_tok) + stoi(memory);
+                    set_symbolvalue(last_tok, number);
                 }
 
                 else {
@@ -321,8 +341,8 @@ void pass1(){
         }
         else{
             relative_offSet = stoi(memory);
-            if (is_digits(str_tok) && str_tok != "0"){
-                if (is_digits(next_tok)){
+            if (is_digits(str_tok)){ //&& str_tok != "0"){ //////////////////////////////////////////(input 5 isn't correct with this condition. not sure why it's been here)
+                if (is_digits(next_tok) && module_size == 0){
                     int tmp = stoi(str_tok) + stoi(memory);
                     //symbol_value.push_back(to_string(tmp));
                     set_symbolvalue(last_tok, tmp);
@@ -344,6 +364,12 @@ void pass1(){
 
     }
     print_symbol_table();
+    // for (int i =0; i < symbol_name.size(); i++){
+    //     if(symbol_value.at(i) == "-"){
+    //          cout<< "Error: "<< symbol_name.at(i)<< " is not defined; zero used"<<endl;
+    //          symbol_value.at(i) = 0;
+    //     }
+    // }
 }
 
 void pass2(){
@@ -463,9 +489,6 @@ void pass2(){
                             if(flag_uselist.at(i) == 0){
                                 int index = find_symbol_index(use_list.at(i), i);
                                 string symbol_not_used = symbol_name.at(index);
-                                if (possible_uselist == ""){
-                                    cout<<"Warning: "<<"???????????????????"<< symbol_not_used << " was defined but never used"<<endl;
-                                }
                             }
                         }
                     }
