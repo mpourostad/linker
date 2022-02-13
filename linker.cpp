@@ -16,10 +16,14 @@ const int Max_Symbol_Characters = 16;
 string filename = "0";
 int offSet;
 int relative_offSet;
+int unused_index = -1;
 string memory; 
 vector<string> use_list;
 vector<string> symbol_name;
 vector<string> symbol_value;
+vector<string> symbol_module_number;
+vector<string> unused_symbol_name;
+vector<string> unused_symbol_module_number;
 vector<int> flag_uselist;
 vector<string> deflist;
 
@@ -81,10 +85,10 @@ bool contains(vector<int> vec, int elem)
     }
     return result;
 }
-int find_symbol_index(string symb){
+int find_symbol_index(vector<string> vec_var ,string symb){
 
-    std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), symb);
-    return distance(symbol_name.begin(), itr);
+    std::vector<string>::iterator itr = find(vec_var.begin(), vec_var.end(), symb);
+    return distance(vec_var.begin(), itr);
 }
 void print_symbol_table(){
     //int num = symbolVal + offSet;
@@ -168,7 +172,7 @@ void E_Instruction(int operand){
         }
         else{
             flag_uselist.at(index) = 1;
-            index = find_symbol_index(use_list.at(index));
+            index = find_symbol_index(symbol_name, use_list.at(index));
             if (symbol_value.at(index) == "-"){
                 int absolute_address = 0;
                 int num = replace(operand, absolute_address);
@@ -178,6 +182,16 @@ void E_Instruction(int operand){
                 int absolute_address = stoi(symbol_value.at(index));
                 int num = replace(operand, absolute_address);
                 cout<<memory<<": " << num<< endl;
+                // remove from unused_symbol_list:
+                if(!unused_symbol_name.empty()){
+                    if(std::find(unused_symbol_name.begin(), unused_symbol_name.end(), symbol_name.at(index)) != unused_symbol_name.end()) {
+                        unused_index = find_symbol_index(unused_symbol_name, symbol_name.at(index));
+                        if (unused_index != -1){
+                            unused_symbol_name.erase(unused_symbol_name.begin() + unused_index);
+                            unused_symbol_module_number.erase(unused_symbol_module_number.begin() + unused_index);
+                        }
+                    }
+                }
             }
             
         }
@@ -261,7 +275,7 @@ void eraseSubStr(std::string & mainStr, const std::string & toErase)
 void warning_5(vector<string> flag, int count, int module_size, int memory, int address){
     for(int i = 0; i  < flag.size(); i++){
         if(find(symbol_name.begin(), symbol_name.end(), flag.at(i)) != symbol_name.end()) {
-            int index = find_symbol_index(flag.at(i));
+            int index = find_symbol_index(symbol_name, flag.at(i));
             if(symbol_value.at(index) != "-" && stoi(symbol_value.at(index)) > module_size){
                 // cout<< "Warning: Module " << count << ": "<< flag.at(i) << " to big " << memory << " (max=" << module_size - 1 << ") assume zero relative"<< endl;
                 // cout<< "khar" << address<< endl;
@@ -294,6 +308,7 @@ void pass1(){
     vector<string> flag_symb_val;
     int khar = -100;
     int gav = -100;
+    
     // int module_size_holder = 0;
     // int warning = 0;
   
@@ -329,6 +344,7 @@ void pass1(){
             //     ; // Do nothing
             // }
             module_size = stoi(str_tok);
+            flag_module_start = 1;
         }
         if (module_size > 0){
             if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
@@ -339,12 +355,30 @@ void pass1(){
                 //         int number = stoi(str_tok) + stoi(memory);
                 //         set_symbolvalue(last_tok, number);
                 //     }
-                if (is_digits(str_tok) && (!is_digits(next_tok) && str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I")){
+                if (is_digits(str_tok) && ((!is_digits(next_tok)))){
                     int number = stoi(str_tok) + stoi(memory);
                     if (!(is_digits(last_tok))){
                         set_symbolvalue(last_tok, number);
-                        //flag_symb = find_symbol_index(last_tok);
+                        if (std::find(symbol_name.begin(), symbol_name.end(), last_tok) != symbol_name.end()){
+                            symbol_module_number.push_back(to_string(count_module + 1));                          
+                        }
+                    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ debug start
+                    // cout << symbol_module_number.size() << endl;
+                    // cout << symbol_name.size() << endl;
+                    // if (symbol_module_number.size() != 0){
+                    //     for (int i = 0; i < symbol_module_number.size(); i++){
+                    //         cout<< "symbol: "<< symbol_name.at(i)<< endl;
+                    //         cout<< "module number " << symbol_module_number.at(i) << endl;
+                            
+                    //     }
+                    //     cout<< "--------------------" << endl;
+                    // }
+
+                        //cout<< "last_tok" << last_tok<< endl;
+                    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ debug end
+                        //flag_symb = find_symbol_index(symbol_name, last_tok);
                         flag_symb_val.push_back(last_tok);
+                        
                     }   
                     
                 }
@@ -355,6 +389,7 @@ void pass1(){
                     }
                     else{
                         symbol_name.push_back(str_tok);
+
                         symbol_value.push_back("-");
                     }
                     module_size -= 1;
@@ -364,10 +399,13 @@ void pass1(){
                 //cout << "alan: " << str_tok <<" next_tok: " << next_tok <<" rel: " << relative_offSet <<endl;
                 update_memory();
                 str = str_tmp;
+                // cout<<  "count_module " << count_module << endl;
                 if (flag_module_start == 1){
-                    module = module_size;
+                   
                     flag_module_start = -1;
                     count_module++;
+                    //  cout<<  "count_module " << count_module << endl;
+                    module = module_size;
                     if(flag_symb_val.size() > 0){
                         warning_5(flag_symb_val, count_module, module, khar, gav);
                         flag_symb_val.clear();
@@ -391,9 +429,10 @@ void pass1(){
                     //symbol_value.push_back(to_string(tmp));
                     
                     set_symbolvalue(last_tok, tmp);
-                    // cout<< "symb name: "<< last_tok <<  " symb val " << tmp << endl;
-                    // cout<< "str_tok: "<< str_tok << endl;
-                    // cout<< "next_tok: "<< next_tok << endl;
+                    if (std::find(symbol_name.begin(), symbol_name.end(), last_tok) != symbol_name.end()){
+                        symbol_module_number.push_back(to_string(count_module + 1));
+                    }
+
                     module_size = -100;
                     //flag_module_start = -1;
                 }
@@ -415,7 +454,37 @@ void pass1(){
         str = reduce(str);
 
     }
+    unused_symbol_name = symbol_name;
+    unused_symbol_module_number = symbol_module_number;
+    if (symbol_value.size() > 0){
+        for (int i = 0; i < symbol_value.size(); i++){
+            if (symbol_value.at(i) == "-"){
+                if (std::find(unused_symbol_name.begin(), unused_symbol_name.end(), symbol_name.at(i)) != unused_symbol_name.end()){
+                    //cout << "thiiiiiiiiis";
+                    int index = find_symbol_index(unused_symbol_name, symbol_name.at(i));
+                    //cout<< "index "<< index<<endl;
+                    unused_symbol_name.erase(unused_symbol_name.begin() + index); 
+                }
+            }
+        }
+    }
+    //cout<< "<< symbol_value.size()<<endl;
+    ///////
     print_symbol_table();
+    //+++++++++++++++++++++++++++++++++++++++
+    // cout << symbol_module_number.size() << endl;
+    //cout << unused_symbol_name.empty() << endl;
+    // if (unused_symbol_name.size() != 0){
+    //     for (int i = 0; i < unused_symbol_name.size(); i++){
+    //         cout<< "symbol: "<< unused_symbol_name.at(i)<< endl;
+    //         //cout<< "module number " << symbol_module_number.at(i) << endl;
+            
+    //     }
+    //     cout<< "--------------------" << endl;
+    // }
+
+
+   // ++++++++++++++++++++++++++++++++++++++++++
 }
 
 void pass2(){
@@ -441,6 +510,14 @@ void pass2(){
     string buffer;
     string str;
     //int relative_offset = 0;
+    
+
+    // for (int i = 0; i < symbol_value.size(); i++){
+    //     cout<<"symbol_value_"<< i<< ": "<<symbol_value.at(i)<<endl;
+    // }
+    // for (int i = 0; i < unused_symbol_name.size(); i++){
+    //     cout<<"unused_symbol_name_"<< i<< ": "<<unused_symbol_name.at(i)<<endl;
+    // }
     f.open(filename);
     while(getline(f, buffer)){
         //cout<<buffer;
@@ -526,7 +603,7 @@ void pass2(){
                     cout<< "khar1";
                     for (int i = 0; i < flag_uselist.size(); i++){
                         if(flag_uselist.at(i) == 0){
-                            int index = find_symbol_index(use_list.at(i));
+                            int index = find_symbol_index(symbol_name, use_list.at(i));
                             //string symbol_not_used = symbol_name.at(index);
                             tuple<int,string> foo (count,symbol_name.at(index));
                             check_uselist.push_back(foo);
@@ -580,7 +657,7 @@ void pass2(){
                     //     cout<< "khar2";
                     //     for (int i = 0; i < flag_uselist.size(); i++){
                     //         if(flag_uselist.at(i) == 0){
-                    //             int index = find_symbol_index(use_list.at(i));
+                    //             int index = find_symbol_index(symbol_name, use_list.at(i));
                     //             //string symbol_not_used = symbol_name.at(index);
                     //             tuple<int,string> foo (count,symbol_name.at(index));
                     //             check_uselist.push_back(foo);
@@ -607,7 +684,7 @@ void pass2(){
                         
                         for (int i = 0; i < flag_uselist.size(); i++){
                             if(flag_uselist.at(i) == 0){
-                                int index = find_symbol_index(use_list.at(i));
+                                int index = find_symbol_index(symbol_name, use_list.at(i));
                                 //string symbol_not_used = symbol_name.at(index);
                                 tuple<int,string> foo (count,symbol_name.at(index));
                                 check_uselist.push_back(foo);
@@ -638,7 +715,7 @@ void pass2(){
     
         for (int i = 0; i < flag_uselist.size(); i++){
             if(flag_uselist.at(i) == 0){
-                int index = find_symbol_index(use_list.at(i));
+                int index = find_symbol_index(symbol_name, use_list.at(i));
                 //string symbol_not_used = symbol_name.at(index);
                 tuple<int,string> foo (count,symbol_name.at(index));
                 check_uselist.push_back(foo);
@@ -651,9 +728,15 @@ void pass2(){
     //     cout<<"Warning: Module "<< get<0>(check_uselist.at(i))<< ": "<< get<1>(check_uselist.at(i)) <<"appeared in the uselist but was not actually used"<<endl;
     // }
     
-     for(const auto &i : check_uselist){
-         cout<<"Warning: Module "<< get<0>(i)<< ": "<< get<1>(i) <<" appeared in the uselist but was not actually used"<<endl;
-     }
+    
+    for(const auto &i : check_uselist){
+        cout<<"Warning: Module "<< get<0>(i)<< ": "<< get<1>(i) <<" appeared in the uselist but was not actually used"<<endl;
+    }
+    if (unused_symbol_name.size()>0){
+        for (int i = 0; i < unused_symbol_name.size(); i++){
+            cout<<"Warning: Module "<< unused_symbol_module_number.at(i) << ": "<<unused_symbol_name.at(i)<< " was defined but never used"<<endl;
+        }
+    }
 }
 
 
