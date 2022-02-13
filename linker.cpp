@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include<algorithm>
+#include<tuple>
 using namespace std;
 
 //static const string& file_name;
@@ -80,25 +81,27 @@ bool contains(vector<int> vec, int elem)
     }
     return result;
 }
-int find_symbol_index(string symb, int index){
-    std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), use_list.at(index));
+int find_symbol_index(string symb){
+
+    std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), symb);
     return distance(symbol_name.begin(), itr);
 }
 void print_symbol_table(){
     //int num = symbolVal + offSet;
-    cout<< "Symbol Table: "<< endl;
+    cout<< "Symbol Table"<< endl;
     for (int i = 0; i < symbol_value.size(); i++){
         if(find(deflist.begin(), deflist.end(), symbol_name.at(i)) != deflist.end()) {
-            cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << " ";
+            cout<< symbol_name.at(i) << "=" << symbol_value.at(i) << " ";
             error_message(2);
         }
         else if (symbol_value.at(i) == "-"){
             ;
         }
         else{
-            cout<< symbol_name.at(i) << " = " << symbol_value.at(i) << endl;
+            cout<< symbol_name.at(i) << "=" << symbol_value.at(i) << endl;
         }
     }
+    cout<<'\n';
 }
 int replace(int operand, int absolute_address){
     int temp = operand / 1000;
@@ -164,10 +167,8 @@ void E_Instruction(int operand){
             error_message(6);
         }
         else{
-            //std::vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), use_list.at(index));
             flag_uselist.at(index) = 1;
-            //index = distance(symbol_name.begin(), itr);
-            index = find_symbol_index(use_list.at(index), index);
+            index = find_symbol_index(use_list.at(index));
             if (symbol_value.at(index) == "-"){
                 int absolute_address = 0;
                 int num = replace(operand, absolute_address);
@@ -195,10 +196,9 @@ void set_symbolvalue(string str, int address){
         }
         
     }
-    // To be fixed tomorrow
     else {
         ;
-        // cout<< "Error: "<< str<<" is not defined; zero used"<<endl;
+        //cout<< "Error: "<< str<<" is not defined; zero used"<<endl;
         // symbol_value.at(index) = to_string(0);
     }
 }
@@ -258,6 +258,22 @@ void eraseSubStr(std::string & mainStr, const std::string & toErase)
         mainStr.erase(pos, toErase.length());
     }
 }
+void warning_5(vector<string> flag, int count, int module_size, int memory, int address){
+    for(int i = 0; i  < flag.size(); i++){
+        if(find(symbol_name.begin(), symbol_name.end(), flag.at(i)) != symbol_name.end()) {
+            int index = find_symbol_index(flag.at(i));
+            if(symbol_value.at(index) != "-" && stoi(symbol_value.at(index)) > module_size){
+                // cout<< "Warning: Module " << count << ": "<< flag.at(i) << " to big " << memory << " (max=" << module_size - 1 << ") assume zero relative"<< endl;
+                // cout<< "khar" << address<< endl;
+                //symbol_value.at(index) = "0";
+                // set_symbolvalue(flag.at(i), memory);
+                ;
+            }
+        } 
+        
+    }
+
+}
 
 void pass1(){
     string str_tmp = "";
@@ -271,6 +287,15 @@ void pass1(){
     char *dup;
     char *dup1;
     int module_size = -100;
+    int module = 0; 
+    int flag_module_start = -1;
+    int count_module = 0;
+    //int flag_symb = -1;
+    vector<string> flag_symb_val;
+    int khar = -100;
+    int gav = -100;
+    // int module_size_holder = 0;
+    // int warning = 0;
   
     ifstream f;
     string buffer;
@@ -316,7 +341,12 @@ void pass1(){
                 //     }
                 if (is_digits(str_tok) && (!is_digits(next_tok) && str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I")){
                     int number = stoi(str_tok) + stoi(memory);
-                    set_symbolvalue(last_tok, number);
+                    if (!(is_digits(last_tok))){
+                        set_symbolvalue(last_tok, number);
+                        //flag_symb = find_symbol_index(last_tok);
+                        flag_symb_val.push_back(last_tok);
+                    }   
+                    
                 }
 
                 else {
@@ -331,25 +361,47 @@ void pass1(){
                 }
             }
             if (str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
-                module_size -= 1;
                 //cout << "alan: " << str_tok <<" next_tok: " << next_tok <<" rel: " << relative_offSet <<endl;
                 update_memory();
                 str = str_tmp;
+                if (flag_module_start == 1){
+                    module = module_size;
+                    flag_module_start = -1;
+                    count_module++;
+                    if(flag_symb_val.size() > 0){
+                        warning_5(flag_symb_val, count_module, module, khar, gav);
+                        flag_symb_val.clear();
+                    }
+
+                }
+                module_size -= 1;
             }
             std::string s;
             for (const auto &piece : symbol_name) s += piece;
         }
         else{
+            //cout << "module_size" << module_size << endl;
             relative_offSet = stoi(memory);
-            if (is_digits(str_tok)){ //&& str_tok != "0"){ //////////////////////////////////////////(input 5 isn't correct with this condition. not sure why it's been here)
-                if (is_digits(next_tok) && module_size == 0){
+            if (is_digits(str_tok)){// && str_tok != "0"){ //////////////////////////////////////////(input 5 isn't correct with this condition. not sure why it's been here)
+                if (is_digits(next_tok)){
                     int tmp = stoi(str_tok) + stoi(memory);
+                    khar = stoi(memory);
+                    gav = stoi(str_tok);
+                    flag_symb_val.push_back(last_tok);
                     //symbol_value.push_back(to_string(tmp));
+                    
                     set_symbolvalue(last_tok, tmp);
+                    // cout<< "symb name: "<< last_tok <<  " symb val " << tmp << endl;
+                    // cout<< "str_tok: "<< str_tok << endl;
+                    // cout<< "next_tok: "<< next_tok << endl;
                     module_size = -100;
+                    //flag_module_start = -1;
                 }
                 else{
                     module_size = stoi(str_tok);
+                    flag_module_start = 1;
+                    //module_size_holder = module_size;
+                    
                 }
             }
         }
@@ -364,12 +416,6 @@ void pass1(){
 
     }
     print_symbol_table();
-    // for (int i =0; i < symbol_name.size(); i++){
-    //     if(symbol_value.at(i) == "-"){
-    //          cout<< "Error: "<< symbol_name.at(i)<< " is not defined; zero used"<<endl;
-    //          symbol_value.at(i) = 0;
-    //     }
-    // }
 }
 
 void pass2(){
@@ -387,7 +433,10 @@ void pass2(){
     int flag = 0;
     string possible_uselist = "";
     int module_size_holder = 0;
-
+    int count = 0;
+    int flag_module = 0;
+    int flag_E = 0;
+    vector<tuple <int, string> > check_uselist;
     ifstream f;
     string buffer;
     string str;
@@ -402,6 +451,7 @@ void pass2(){
     }
     f.close();
     while(str.length() > 1){
+
         str_tmp = str;
         dup = strdup(str.c_str());
         tok = strtok(dup, delim);
@@ -413,6 +463,7 @@ void pass2(){
         next_tok_char = strtok(dup1, delim);
         std::string next_tok = std::string(next_tok_char);
         free(dup1);
+        //cout<< "next tok "<< next_tok<< endl;
 ///////////////////////////////////////////////////
         if (module_size == -100){
             // if (!(isdigit(tok))){
@@ -424,6 +475,7 @@ void pass2(){
         }
         if (module_size > 0){
             if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
+                
                 if (is_digits(str_tok)){
                     ;
                 }
@@ -444,11 +496,16 @@ void pass2(){
             }
             if (str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
                 flag = 1;
+                if (module_size == module_size_holder){
+                    flag_module = 1;
+                    count++;
+                }
                 module_size -= 1;
                 //cout << "alan: " << str_tok <<" next_tok: " << next_tok <<" rel: " << relative_offSet <<endl;
 
                 if (str_tok == "E"){
                     E_Instruction(stoi(next_tok));
+                    flag_E = 1;
                 }
                 else if(str_tok == "R"){
                     //cout<< "module_size_holder" << module_size_holder<< endl;
@@ -461,7 +518,23 @@ void pass2(){
                     A_Instruction(stoi(next_tok));
                 }
                 str = str_tmp;
+               
             }
+            if (module_size == 0 && str.length() == 2){
+                cout<< "khar1.0";
+                if (contains(flag_uselist, 0)){
+                    cout<< "khar1";
+                    for (int i = 0; i < flag_uselist.size(); i++){
+                        if(flag_uselist.at(i) == 0){
+                            int index = find_symbol_index(use_list.at(i));
+                            //string symbol_not_used = symbol_name.at(index);
+                            tuple<int,string> foo (count,symbol_name.at(index));
+                            check_uselist.push_back(foo);
+                        }
+                    }
+                }
+            }
+            
             std::string s;
             for (const auto &piece : symbol_name) s += piece;
         }
@@ -472,31 +545,76 @@ void pass2(){
             relative_offSet = stoi(memory);
             if (is_digits(str_tok) && str_tok != "0"){
                 if (is_digits(next_tok)){
-                    int tmp = stoi(str_tok) + relative_offSet;
+                    //int tmp = stoi(str_tok) + relative_offSet;
+                    // cout<< "------------------------------ \n"<<endl;
+                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
+                    // cout<<"uselist_size: "<<use_list.size()<<endl;
+                    // for (int i = 0; i < flag_uselist.size(); i++){
+                        
+                    //     cout<<"flag_uselist_"<< i<< ": "<<flag_uselist.at(i)<<endl;
+                    //     cout<<"uselist_"<< i<< ": "<<use_list.at(i)<<endl;
+                    // }
+                    // cout<< "------------------------------- \n"<<endl;
+
+
                     if (possible_uselist != ""){
                         possible_uselist = "";
                     }
                     //symbol_value.push_back(to_string(tmp));
                     //------------------------------------------------------------- commented the next line to see if it's necessary in pass2
                     //set_symbolvalue(last_tok, tmp);
-                    module_size = -1;
+                    //module_size = -1;
                 }
                 else{
+                    // cout<< "khar2.0";
                     module_size = stoi(str_tok);
                     module_size_holder = module_size;
-                    if (contains(flag_uselist, 0)){
-                        for (int i = 0; i < flag_uselist.size(); i++){
-                            if(flag_uselist.at(i) == 0){
-                                int index = find_symbol_index(use_list.at(i), i);
-                                string symbol_not_used = symbol_name.at(index);
-                            }
-                        }
-                    }
-
+                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
+                    // cout<<"uselist_size: "<<use_list.size()<<endl;
+                    // for (int i = 0; i < flag_uselist.size(); i++){
+                    //     cout<<"flag_uselist_"<< i<< ": "<<flag_uselist.at(i)<<endl;
+                    //     cout<<"uselist_"<< i<< ": "<<use_list.at(i)<<endl;
+                    // }
+                    //+++old
+                    // if (contains(flag_uselist, 0) && flag_module == 1){
+                    //     cout<< "khar2";
+                    //     for (int i = 0; i < flag_uselist.size(); i++){
+                    //         if(flag_uselist.at(i) == 0){
+                    //             int index = find_symbol_index(use_list.at(i));
+                    //             //string symbol_not_used = symbol_name.at(index);
+                    //             tuple<int,string> foo (count,symbol_name.at(index));
+                    //             check_uselist.push_back(foo);
+                    //         }
+                    //     }
+                    // }
                     if (possible_uselist != ""){
                         use_list.push_back(possible_uselist);
                         flag_uselist.push_back(0);
+                        possible_uselist = "";
                     }
+                    //^^^^^^^^old
+                    // cout<< "+++++++++++++++++++++++++++++++ \n"<<endl;
+                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
+                    // cout<<"uselist_size: "<<use_list.size()<<endl;
+                    // for (int i = 0; i < flag_uselist.size(); i++){
+                        
+                    //     cout<<"flag_uselist_"<< i<< ": "<<flag_uselist.at(i)<<endl;
+                    //     cout<<"uselist_"<< i<< ": "<<use_list.at(i)<<endl;
+                    // }
+                    // cout<< "+++++++++++++++++++++++++++++++ \n"<<endl;
+                    //cout<<"flag_module: "<<flag_module<<endl;
+                    if (contains(flag_uselist, 0) && flag_E == 1){
+                        
+                        for (int i = 0; i < flag_uselist.size(); i++){
+                            if(flag_uselist.at(i) == 0){
+                                int index = find_symbol_index(use_list.at(i));
+                                //string symbol_not_used = symbol_name.at(index);
+                                tuple<int,string> foo (count,symbol_name.at(index));
+                                check_uselist.push_back(foo);
+                            }
+                        }
+                    }
+                    flag_E = 0;
                     if (flag == 1){
                         //cout<< "use_list"<< use_list.at(0)<< endl;
                         use_list.clear();
@@ -505,6 +623,7 @@ void pass2(){
                     }
                 }
             }
+
         }
         //insert_symbolvalue("z");
 /////////////////////////////////////////////////////
@@ -515,6 +634,26 @@ void pass2(){
         last_tok = str_tok;
         str = reduce(str);
     }
+    if (contains(flag_uselist, 0) && flag_E == 1){
+    
+        for (int i = 0; i < flag_uselist.size(); i++){
+            if(flag_uselist.at(i) == 0){
+                int index = find_symbol_index(use_list.at(i));
+                //string symbol_not_used = symbol_name.at(index);
+                tuple<int,string> foo (count,symbol_name.at(index));
+                check_uselist.push_back(foo);
+            }
+        }
+    }
+    // cout<< "count"<< count<< endl;
+    // cout << get<0>(check_uselist.at(0))<<endl;
+    // for (int i = 0; i < check_uselist.size() - 1; i++){
+    //     cout<<"Warning: Module "<< get<0>(check_uselist.at(i))<< ": "<< get<1>(check_uselist.at(i)) <<"appeared in the uselist but was not actually used"<<endl;
+    // }
+    
+     for(const auto &i : check_uselist){
+         cout<<"Warning: Module "<< get<0>(i)<< ": "<< get<1>(i) <<" appeared in the uselist but was not actually used"<<endl;
+     }
 }
 
 
@@ -532,7 +671,7 @@ int main(int argc, char** argv){
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ pass 2
     memory = "000";
     relative_offSet = 0;
-    cout<<"Memory Map: "<< endl;
+    cout<<"Memory Map"<< endl;
     pass2();
      return 0;
 }
