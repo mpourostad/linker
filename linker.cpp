@@ -10,7 +10,7 @@
 using namespace std;
 
 //static const string& file_name;
-static int line_num;
+//static int line_num;
 const int Max_Memory = 512;
 const int Max_Symbol_Characters = 16;
 string filename = "0";
@@ -127,7 +127,7 @@ void R_Instruction(int operand, int mod){
     if (operand > 9999){
         operand = 9999;
         cout<< memory<< ": " << operand<< " ";       
-        error_message(10);
+        error_message(11);
     }
     else if (mod < address ){
         int opcode = operand / 1000;
@@ -137,7 +137,28 @@ void R_Instruction(int operand, int mod){
     }
     else{
         int num = operand + relative_offSet;
-        cout<< memory<< ": " << num<< endl;
+        if (num < 10){
+            string s_num = to_string(num);
+            string add_zero = "000";
+            s_num.insert(0, add_zero);
+            cout<< memory<< ": " << s_num<< endl;
+        }
+        else if (operand < 100){
+            string s_num = to_string(num);
+            string add_zero = "00";
+            s_num.insert(0, add_zero);
+            cout<< memory<< ": " << s_num<< endl;
+        }
+        else if (operand < 1000){
+            string s_num = to_string(num);
+            string add_zero = "0";
+            s_num.insert(0, add_zero);
+            cout<< memory<< ": " << s_num<< endl;
+        }
+        else{
+             cout<< memory<< ": " << num << endl;
+        }
+        //cout<< memory<< ": " << num<< endl;
     }
     update_memory();
 }
@@ -145,10 +166,31 @@ void I_Instruction(int operand){
     if (operand > 9999){
         operand = 9999;
         cout<< memory<< ": " << operand<< " ";       
-        error_message(11);
+        error_message(10);
     }
     else{
-        cout<< memory<< ": " << operand<< endl;
+        if (operand < 10){
+            string s_operand = to_string(operand);
+            string add_zero = "000";
+            s_operand.insert(0, add_zero);
+            cout<< memory<< ": " << s_operand<< endl;
+        }
+        else if (operand < 100){
+            string s_operand = to_string(operand);
+            string add_zero = "00";
+            s_operand.insert(0, add_zero);
+            cout<< memory<< ": " << s_operand<< endl;
+        }
+        else if (operand < 1000){
+            string s_operand = to_string(operand);
+            string add_zero = "0";
+            s_operand.insert(0, add_zero);
+            cout<< memory<< ": " << s_operand<< endl;
+        }
+        else{
+             cout<< memory<< ": " << operand<< endl;
+        }
+
     }
     update_memory();
 }
@@ -165,7 +207,27 @@ void A_Instruction(int operand){
         error_message(8);
     }
     else{
-        cout<< memory<< ": " << operand<< endl;
+        if (operand < 10){
+            string s_operand = to_string(operand);
+            string add_zero = "000";
+            s_operand.insert(0, add_zero);
+            cout<< memory<< ": " << s_operand<< endl;
+        }
+        else if (operand < 100){
+            string s_operand = to_string(operand);
+            string add_zero = "00";
+            s_operand.insert(0, add_zero);
+            cout<< memory<< ": " << s_operand<< endl;
+        }
+        else if (operand < 1000){
+            string s_operand = to_string(operand);
+            string add_zero = "0";
+            s_operand.insert(0, add_zero);
+            cout<< memory<< ": " << s_operand<< endl;
+        }
+        else{
+             cout<< memory<< ": " << operand<< endl;
+        }
     }
     update_memory();
 }
@@ -291,25 +353,53 @@ void eraseSubStr(std::string & mainStr, const std::string & toErase)
         mainStr.erase(pos, toErase.length());
     }
 }
-//void warning_5(vector<string> flag, int count, int module_size, int memory, int address){
-//     for(int i = 0; i  < flag.size(); i++){
-//         if(find(symbol_name.begin(), symbol_name.end(), flag.at(i)) != symbol_name.end()) {
-//             int index = find_symbol_index(symbol_name, flag.at(i));
-//             if(symbol_value.at(index) != "-" && stoi(symbol_value.at(index)) > module_size){
-//                 // cout<< "Warning: Module " << count << ": "<< flag.at(i) << " to big " << memory << " (max=" << module_size - 1 << ") assume zero relative"<< endl;
-//                 // cout<< "khar" << address<< endl;
-//                 //symbol_value.at(index) = "0";
-//                 // set_symbolvalue(flag.at(i), memory);
-//                 ;
-//             }
-//         } 
-        
-//     }
+int line_num(string str){
+    ifstream f;
+    string buffer;
+    int offset;
+    int i = 1;
+    
+    f.open(filename);
+    while(getline(f, buffer)){
+        //cout<<buffer;
+        offset = buffer.find(str);
 
-// }
-// void warning_5(int count_module, int module_size){
-//     for (int)
-// }
+        if (offset != -1){
+            return i;
+        }
+        else{
+            //getline(f, buffer);
+            i++;
+            continue;
+        }
+
+    }
+    return -1;
+}
+int getOffset(string str){
+    ifstream f;
+    string buffer;
+    int offset;
+    //int i = 1;
+    
+    f.open(filename);
+    while(getline(f, buffer)){
+        //cout<<buffer;
+        offset = buffer.find(str);
+        cout<< buffer<<endl;
+        if (offset != -1){
+            return offset + 1;
+        }
+        else{
+            //getline(f, buffer);
+            //i++;
+            continue;
+        }
+
+    }
+    return -1;
+}
+
 
 void pass1(){
     string str_tmp = "";
@@ -498,8 +588,15 @@ void pass1(){
             }
         }
     }
-    //cout<< "<< symbol_value.size()<<endl;
-    ///////
+    if(!symbol_name.empty()){
+        for (int i = 0; i < symbol_name.size(); i++){
+            if (symbol_name.at(0).length() > 17){
+                int offset = getOffset(symbol_name.at(0));
+                int line = line_num(symbol_name.at(0));
+            }
+        }
+    }
+    
     print_symbol_table();
     //+++++++++++++++++++++++++++++++++++++++
     // cout << symbol_module_number.size() << endl;
@@ -628,20 +725,18 @@ void pass2(){
                 str = str_tmp;
                
             }
-            if (module_size == 0 && str.length() == 2){
-                cout<< "khar1.0";
-                if (contains(flag_uselist, 0)){
-                    cout<< "khar1";
-                    for (int i = 0; i < flag_uselist.size(); i++){
-                        if(flag_uselist.at(i) == 0){
-                            int index = find_symbol_index(symbol_name, use_list.at(i));
-                            //string symbol_not_used = symbol_name.at(index);
-                            tuple<int,string> foo (count,symbol_name.at(index));
-                            check_uselist.push_back(foo);
-                        }
-                    }
-                }
-            }
+            // if (module_size == 0 && str.length() == 2){
+            //     if (contains(flag_uselist, 0)){
+            //         for (int i = 0; i < flag_uselist.size(); i++){
+            //             if(flag_uselist.at(i) == 0){
+            //                 int index = find_symbol_index(symbol_name, use_list.at(i));
+            //                 //string symbol_not_used = symbol_name.at(index);
+            //                 tuple<int,string> foo (count,symbol_name.at(index));
+            //                 check_uselist.push_back(foo);
+            //             }
+            //         }
+            //     }
+            // }
             
             std::string s;
             for (const auto &piece : symbol_name) s += piece;
@@ -653,16 +748,6 @@ void pass2(){
             relative_offSet = stoi(memory);
             if (is_digits(str_tok)){// && str_tok != "0"){
                 if (is_digits(next_tok)){
-                    //int tmp = stoi(str_tok) + relative_offSet;
-                    // cout<< "------------------------------ \n"<<endl;
-                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
-                    // cout<<"uselist_size: "<<use_list.size()<<endl;
-                    // for (int i = 0; i < flag_uselist.size(); i++){
-                        
-                    //     cout<<"flag_uselist_"<< i<< ": "<<flag_uselist.at(i)<<endl;
-                    //     cout<<"uselist_"<< i<< ": "<<use_list.at(i)<<endl;
-                    // }
-                    // cout<< "------------------------------- \n"<<endl;
 
 
                     possible_uselist_flag = false;
@@ -702,32 +787,17 @@ void pass2(){
                         flag_uselist.push_back(0);
                         possible_uselist_flag = false;
                     }
-                    // if (contains(flag_uselist, 0)){
-                    //     cout<<"flag_uselist_size:  "<<flag_uselist.size()<<endl;
-                    //     cout<<"flag_E: "<<flag_E<<endl;
-                    // }
-                    //^^^^^^^^old
-                    // cout<< "+++++++++++++++++++++++++++++++ \n"<<endl;
-                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
-                    // cout<<"uselist_size: "<<use_list.size()<<endl;
-                    // for (int i = 0; i < flag_uselist.size(); i++){
-                        
-                    //     cout<<"flag_uselist_"<< i<< ": "<<flag_uselist.at(i)<<endl;
-                    //     cout<<"uselist_"<< i<< ": "<<use_list.at(i)<<endl;
-                    // }
-                    // cout<< "+++++++++++++++++++++++++++++++ \n"<<endl;
-                    //cout<<"flag_module: "<<flag_module<<endl;
-                    // cout<<"before_GOOOH_MIDLE "<<endl;
-                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
-                    // print_vector_string(use_list);
+
                     if (contains(flag_uselist, 0) && str.length() > 2 && flag==1){
                         for (int i = 0; i < flag_uselist.size(); i++){
                             if(flag_uselist.at(i) == 0){
                                 int index = find_symbol_index(symbol_name, use_list.at(i));
+                                cout<< '\n';
                                 cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
+                                cout<< '\n';
                                 //string symbol_not_used = symbol_name.at(index);
-                                tuple<int,string> foo (count,symbol_name.at(index));
-                                check_uselist.push_back(foo);
+                                // tuple<int,string> foo (count,symbol_name.at(index));
+                                // check_uselist.push_back(foo);
                             }
                         }
                     }
@@ -756,9 +826,10 @@ void pass2(){
             if(flag_uselist.at(i) == 0){
                 int index = find_symbol_index(symbol_name, use_list.at(i));
                 cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
+                cout<< '\n';
                 //string symbol_not_used = symbol_name.at(index);
-                tuple<int,string> foo (count,symbol_name.at(index));
-                check_uselist.push_back(foo);
+                // tuple<int,string> foo (count,symbol_name.at(index));
+                // check_uselist.push_back(foo);
             }
         }
     }
