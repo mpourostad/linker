@@ -386,7 +386,7 @@ int getOffset(string str){
     while(getline(f, buffer)){
         //cout<<buffer;
         offset = buffer.find(str);
-        cout<< buffer<<endl;
+        //cout<< buffer<<endl;
         if (offset != -1){
             return offset + 1;
         }
@@ -515,12 +515,6 @@ void pass1(){
                         flag_symb_val.clear();
                             
                     }
-                    //cout<< "module_size "<<module_size<< endl;
-                    //if(flag_symb_val.size() > 0){
-                        // warning_5(flag_symb_val, count_module, module, khar, gav);
-                        // flag_symb_val.clear();
-                    //}
-                    //warning_5(count_module, module_size);
 
                 }
                 module_size -= 1;
@@ -576,6 +570,18 @@ void pass1(){
     //////////////////////////////////////////////////////////////////
     unused_symbol_name = symbol_name;
     unused_symbol_module_number = symbol_module_number;
+    if(!symbol_name.empty()){
+        for (int i = 0; i < symbol_name.size(); i++){
+            //cout<<  "symb length : "<<symbol_name.at(i).length() << endl;;
+            if (symbol_name.at(i).length() > 17){
+                //cout << "khar";
+                int offset = getOffset(symbol_name.at(i));
+                int line = line_num(symbol_name.at(i));
+                cout << "Parse Error line " << line << " offset " << offset << ": SYM_TOO_LONG";
+                exit(1);
+            }
+        }
+    }
     if (symbol_value.size() > 0){
         for (int i = 0; i < symbol_value.size(); i++){
             if (symbol_value.at(i) == "-"){
@@ -588,14 +594,7 @@ void pass1(){
             }
         }
     }
-    if(!symbol_name.empty()){
-        for (int i = 0; i < symbol_name.size(); i++){
-            if (symbol_name.at(0).length() > 17){
-                int offset = getOffset(symbol_name.at(0));
-                int line = line_num(symbol_name.at(0));
-            }
-        }
-    }
+    
     
     print_symbol_table();
     //+++++++++++++++++++++++++++++++++++++++
