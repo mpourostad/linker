@@ -454,6 +454,12 @@ void pass1(){
         if (module_size == -100){
             
             module_size = stoi(str_tok);
+            if (stoi(str_tok) > 16){
+                int offset = getOffset(str_tok);
+                int line = line_num(str_tok);
+                cout << "Parse Error line " << line << " offset " << offset << ": TOO_MANY_USE_IN_MODULE";
+                exit(1);
+            }
             flag_module_start = 1;
         }
         if (module_size > 0){
@@ -545,6 +551,12 @@ void pass1(){
                 }
                 else{
                     module_size = stoi(str_tok);
+                    if (stoi(str_tok) > 16){
+                        int offset = getOffset(str_tok);
+                        int line = line_num(str_tok);
+                        cout << "Parse Error line " << line << " offset " << offset << ": TOO_MANY_USE_IN_MODULE";
+                        exit(1);
+                    }
                     flag_module_start = 1;
                     //module_size_holder = module_size;
                     
