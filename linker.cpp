@@ -61,6 +61,11 @@ void error_message(int ruleBroken){
 		// 
 }
 
+void print_vector(vector<string> vec){
+    for (int i = 0; i < vec.size(); i++){
+        cout<<"vec_"<< i<< ": "<<vec.at(i)<<endl;
+    }
+}
 
 void update_memory(){
     int temp = stoi(memory);
@@ -206,7 +211,15 @@ void set_symbolvalue(string str, int address){
             deflist.push_back(symbol_name.at(index));
         }
         else{
-            symbol_value.at(index) = to_string(address);
+            if (index == symbol_value.size()-1){
+                symbol_value.at(index) = to_string(address);
+            }
+            else {
+                symbol_name.erase(symbol_name.begin() + index);
+                symbol_value.erase(symbol_value.begin() + index);
+                symbol_name.push_back(str);
+                symbol_value.push_back(to_string(address));
+            }
         }
         
     }
