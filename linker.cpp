@@ -61,9 +61,15 @@ void error_message(int ruleBroken){
 		// 
 }
 
-void print_vector(vector<string> vec){
+void print_vector_string(vector<string> vec){
     for (int i = 0; i < vec.size(); i++){
         cout<<"vec_"<< i<< ": "<<vec.at(i)<<endl;
+    }
+}
+
+void print_vector_int(vector<int> vec){
+    for (int i = 0; i < vec.size(); i++){
+        cout<<"vec_"<< i<< ": "<<to_string(vec.at(i))<<endl;
     }
 }
 
@@ -525,6 +531,7 @@ void pass2(){
     int module_size = -100;
     int flag = 0;
     string possible_uselist = "";
+    bool possible_uselist_flag = false;
     int module_size_holder = 0;
     int count = 0;
     int flag_module = 0;
@@ -580,7 +587,6 @@ void pass2(){
                 if (is_digits(str_tok)){
                     ;
                 }
-
                 else {
                     
                     if (!(is_digits(next_tok))){
@@ -590,6 +596,7 @@ void pass2(){
                         //cout<< use_list.at(0)<<endl;
                     }
                     else if (module_size == 1){
+                        possible_uselist_flag = true;
                         possible_uselist = str_tok;
                     }
                     module_size -= 1;
@@ -642,9 +649,9 @@ void pass2(){
         // else if (module_size == 1){
 
         // }
-        else{
+        else{ // modul_size = 0
             relative_offSet = stoi(memory);
-            if (is_digits(str_tok) && str_tok != "0"){
+            if (is_digits(str_tok)){// && str_tok != "0"){
                 if (is_digits(next_tok)){
                     //int tmp = stoi(str_tok) + relative_offSet;
                     // cout<< "------------------------------ \n"<<endl;
@@ -658,9 +665,10 @@ void pass2(){
                     // cout<< "------------------------------- \n"<<endl;
 
 
-                    if (possible_uselist != ""){
-                        possible_uselist = "";
-                    }
+                    possible_uselist_flag = false;
+                    // if (possible_uselist != ""){
+                    //     possible_uselist = "";
+                    // }
                     //symbol_value.push_back(to_string(tmp));
                     //------------------------------------------------------------- commented the next line to see if it's necessary in pass2
                     //set_symbolvalue(last_tok, tmp);
@@ -669,6 +677,7 @@ void pass2(){
                 else{
                     // cout<< "khar2.0";
                     module_size = stoi(str_tok);
+                    // cout<<"module_size: "<<module_size<<endl;
                     module_size_holder = module_size;
                     // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
                     // cout<<"uselist_size: "<<use_list.size()<<endl;
@@ -688,11 +697,15 @@ void pass2(){
                     //         }
                     //     }
                     // }
-                    if (possible_uselist != ""){
+                    if (possible_uselist_flag){
                         use_list.push_back(possible_uselist);
                         flag_uselist.push_back(0);
-                        possible_uselist = "";
+                        possible_uselist_flag = false;
                     }
+                    // if (contains(flag_uselist, 0)){
+                    //     cout<<"flag_uselist_size:  "<<flag_uselist.size()<<endl;
+                    //     cout<<"flag_E: "<<flag_E<<endl;
+                    // }
                     //^^^^^^^^old
                     // cout<< "+++++++++++++++++++++++++++++++ \n"<<endl;
                     // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
@@ -704,11 +717,14 @@ void pass2(){
                     // }
                     // cout<< "+++++++++++++++++++++++++++++++ \n"<<endl;
                     //cout<<"flag_module: "<<flag_module<<endl;
-                    if (contains(flag_uselist, 0) && flag_E == 1){
-                        
+                    // cout<<"before_GOOOH_MIDLE "<<endl;
+                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
+                    // print_vector_string(use_list);
+                    if (contains(flag_uselist, 0) && str.length() > 2 && flag==1){
                         for (int i = 0; i < flag_uselist.size(); i++){
                             if(flag_uselist.at(i) == 0){
                                 int index = find_symbol_index(symbol_name, use_list.at(i));
+                                cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
                                 //string symbol_not_used = symbol_name.at(index);
                                 tuple<int,string> foo (count,symbol_name.at(index));
                                 check_uselist.push_back(foo);
@@ -716,8 +732,8 @@ void pass2(){
                         }
                     }
                     flag_E = 0;
+
                     if (flag == 1){
-                        //cout<< "use_list"<< use_list.at(0)<< endl;
                         use_list.clear();
                         flag_uselist.clear();
                         flag = 0;
@@ -735,11 +751,11 @@ void pass2(){
         last_tok = str_tok;
         str = reduce(str);
     }
-    if (contains(flag_uselist, 0) && flag_E == 1){
-    
+    if (contains(flag_uselist, 0) && flag==1){
         for (int i = 0; i < flag_uselist.size(); i++){
             if(flag_uselist.at(i) == 0){
                 int index = find_symbol_index(symbol_name, use_list.at(i));
+                cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
                 //string symbol_not_used = symbol_name.at(index);
                 tuple<int,string> foo (count,symbol_name.at(index));
                 check_uselist.push_back(foo);
@@ -753,9 +769,6 @@ void pass2(){
     // }
     
     
-    for(const auto &i : check_uselist){
-        cout<<"Warning: Module "<< get<0>(i)<< ": "<< get<1>(i) <<" appeared in the uselist but was not actually used"<<endl;
-    }
     if (unused_symbol_name.size()>0){
         for (int i = 0; i < unused_symbol_name.size(); i++){
             cout<<"Warning: Module "<< unused_symbol_module_number.at(i) << ": "<<unused_symbol_name.at(i)<< " was defined but never used"<<endl;
