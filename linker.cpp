@@ -272,22 +272,25 @@ void eraseSubStr(std::string & mainStr, const std::string & toErase)
         mainStr.erase(pos, toErase.length());
     }
 }
-void warning_5(vector<string> flag, int count, int module_size, int memory, int address){
-    for(int i = 0; i  < flag.size(); i++){
-        if(find(symbol_name.begin(), symbol_name.end(), flag.at(i)) != symbol_name.end()) {
-            int index = find_symbol_index(symbol_name, flag.at(i));
-            if(symbol_value.at(index) != "-" && stoi(symbol_value.at(index)) > module_size){
-                // cout<< "Warning: Module " << count << ": "<< flag.at(i) << " to big " << memory << " (max=" << module_size - 1 << ") assume zero relative"<< endl;
-                // cout<< "khar" << address<< endl;
-                //symbol_value.at(index) = "0";
-                // set_symbolvalue(flag.at(i), memory);
-                ;
-            }
-        } 
+//void warning_5(vector<string> flag, int count, int module_size, int memory, int address){
+//     for(int i = 0; i  < flag.size(); i++){
+//         if(find(symbol_name.begin(), symbol_name.end(), flag.at(i)) != symbol_name.end()) {
+//             int index = find_symbol_index(symbol_name, flag.at(i));
+//             if(symbol_value.at(index) != "-" && stoi(symbol_value.at(index)) > module_size){
+//                 // cout<< "Warning: Module " << count << ": "<< flag.at(i) << " to big " << memory << " (max=" << module_size - 1 << ") assume zero relative"<< endl;
+//                 // cout<< "khar" << address<< endl;
+//                 //symbol_value.at(index) = "0";
+//                 // set_symbolvalue(flag.at(i), memory);
+//                 ;
+//             }
+//         } 
         
-    }
+//     }
 
-}
+// }
+// void warning_5(int count_module, int module_size){
+//     for (int)
+// }
 
 void pass1(){
     string str_tmp = "";
@@ -305,7 +308,7 @@ void pass1(){
     int flag_module_start = -1;
     int count_module = 0;
     //int flag_symb = -1;
-    vector<string> flag_symb_val;
+    vector<vector <string> > flag_symb_val;
     int khar = -100;
     int gav = -100;
     
@@ -340,9 +343,7 @@ void pass1(){
         free(dup1);
 ///////////////////////////////////////////////////
         if (module_size == -100){
-            // if (!(isdigit(tok))){
-            //     ; // Do nothing
-            // }
+            
             module_size = stoi(str_tok);
             flag_module_start = 1;
         }
@@ -360,24 +361,12 @@ void pass1(){
                     if (!(is_digits(last_tok))){
                         set_symbolvalue(last_tok, number);
                         if (std::find(symbol_name.begin(), symbol_name.end(), last_tok) != symbol_name.end()){
-                            symbol_module_number.push_back(to_string(count_module + 1));                          
+                            symbol_module_number.push_back(to_string(count_module + 1));
+                            vector<string> temp;
+                            temp.push_back(str_tok); 
+                            temp.push_back(last_tok);
+                            flag_symb_val.push_back(temp);                         
                         }
-                    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ debug start
-                    // cout << symbol_module_number.size() << endl;
-                    // cout << symbol_name.size() << endl;
-                    // if (symbol_module_number.size() != 0){
-                    //     for (int i = 0; i < symbol_module_number.size(); i++){
-                    //         cout<< "symbol: "<< symbol_name.at(i)<< endl;
-                    //         cout<< "module number " << symbol_module_number.at(i) << endl;
-                            
-                    //     }
-                    //     cout<< "--------------------" << endl;
-                    // }
-
-                        //cout<< "last_tok" << last_tok<< endl;
-                    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ debug end
-                        //flag_symb = find_symbol_index(symbol_name, last_tok);
-                        flag_symb_val.push_back(last_tok);
                         
                     }   
                     
@@ -406,10 +395,23 @@ void pass1(){
                     count_module++;
                     //  cout<<  "count_module " << count_module << endl;
                     module = module_size;
-                    if(flag_symb_val.size() > 0){
-                        warning_5(flag_symb_val, count_module, module, khar, gav);
+                    if (!flag_symb_val.empty()){
+                        for(int i = 0; i < flag_symb_val.size(); i++){
+                            if (stoi(flag_symb_val[i][0]) > module ){
+                                cout<< "Warning: Module " << count_module << ": "<< flag_symb_val[i][1]  << " too big " << flag_symb_val[i][0] << " (max=" << module_size - 1 << ") assume zero relative"<< endl;
+                                int index = find_symbol_index(symbol_name, flag_symb_val[i][1]);
+                                symbol_value.at(index) = to_string(stoi( symbol_value.at(index)) - stoi(flag_symb_val[i][0]));
+                            }
+                        }
                         flag_symb_val.clear();
+                            
                     }
+                    //cout<< "module_size "<<module_size<< endl;
+                    //if(flag_symb_val.size() > 0){
+                        // warning_5(flag_symb_val, count_module, module, khar, gav);
+                        // flag_symb_val.clear();
+                    //}
+                    //warning_5(count_module, module_size);
 
                 }
                 module_size -= 1;
@@ -423,14 +425,16 @@ void pass1(){
             if (is_digits(str_tok)){// && str_tok != "0"){ //////////////////////////////////////////(input 5 isn't correct with this condition. not sure why it's been here)
                 if (is_digits(next_tok)){
                     int tmp = stoi(str_tok) + stoi(memory);
-                    khar = stoi(memory);
-                    gav = stoi(str_tok);
-                    flag_symb_val.push_back(last_tok);
+                    
                     //symbol_value.push_back(to_string(tmp));
                     
                     set_symbolvalue(last_tok, tmp);
                     if (std::find(symbol_name.begin(), symbol_name.end(), last_tok) != symbol_name.end()){
                         symbol_module_number.push_back(to_string(count_module + 1));
+                        vector<string> temp;
+                        temp.push_back(str_tok); 
+                        temp.push_back(last_tok);
+                        flag_symb_val.push_back(temp);  
                     }
 
                     module_size = -100;
@@ -454,6 +458,13 @@ void pass1(){
         str = reduce(str);
 
     }
+    //////////////////////////////////////////////////////////////////
+    // for(int i = 0; i < flag_symb_val.size(); i++){
+    //     for (int j = 0; j < flag_symb_val.at(i).size(); j++){
+    //         cout<< "sym_val " << flag_symb_val[i][j] << endl;
+    //     }
+    // }
+    //////////////////////////////////////////////////////////////////
     unused_symbol_name = symbol_name;
     unused_symbol_module_number = symbol_module_number;
     if (symbol_value.size() > 0){
