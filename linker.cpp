@@ -9,12 +9,8 @@
 #include<tuple>
 using namespace std;
 
-//static const string& file_name;
-//static int line_num;
 const int Max_Memory = 512;
-const int Max_Symbol_Characters = 16;
 string filename = "0";
-int offSet;
 int relative_offSet;
 int unused_index = -1;
 string memory; 
@@ -27,7 +23,6 @@ vector<string> symbol_module_number;
 vector<string> unused_symbol_name;
 vector<string> unused_symbol_module_number;
 vector<int> flag_uselist;
-vector<string> deflist;
 
 void error_message(int ruleBroken){
 		if (ruleBroken == 8) {
@@ -143,7 +138,6 @@ void R_Instruction(int operand, int mod){
         else{
              cout<< memory<< ": " << num << endl;
         }
-        //cout<< memory<< ": " << num<< endl;
     }
     update_memory();
 }
@@ -235,17 +229,12 @@ void E_Instruction(int operand){
                 int num = replace(operand, absolute_address);
                 cout<<memory<<": " << num<< " Error: "<< use_list.at(index)<< " is not defined; zero used"<<endl;
             }
-            // index = find_symbol_index(symbol_name, use_list.at(index));
-            // if (symbol_value.at(index) == "-"){
-                
-            //     cout<<memory<<": " << num<< " Error: "<< symbol_name.at(index)<< " is not defined; zero used"<<endl;
-            // }
             else{
                 index = find_symbol_index(symbol_name, use_list.at(index));
                 int absolute_address = stoi(symbol_value.at(index));
                 int num = replace(operand, absolute_address);
                 cout<<memory<<": " << num<< endl;
-                // remove from unused_symbol_list:
+
                 if(!unused_symbol_name.empty()){
                     if(std::find(unused_symbol_name.begin(), unused_symbol_name.end(), symbol_name.at(index)) != unused_symbol_name.end()) {
                         unused_index = find_symbol_index(unused_symbol_name, symbol_name.at(index));
@@ -265,84 +254,31 @@ void set_symbolvalue(string str, int address){
     vector<string>::iterator itr = find(symbol_name.begin(), symbol_name.end(), str);
     int index = distance(symbol_name.begin(), itr);
     if (itr != symbol_name.cend()) {
-        if (symbol_value.at(index) != "-"){
-            deflist.push_back(symbol_name.at(index));
+        if (index == symbol_value.size()-1){
+            symbol_value.at(index) = to_string(address);
         }
-        else{
-            if (index == symbol_value.size()-1){
-                symbol_value.at(index) = to_string(address);
-            }
-            else {
-                symbol_name.erase(symbol_name.begin() + index);
-                symbol_value.erase(symbol_value.begin() + index);
-                symbol_name.push_back(str);
-                symbol_value.push_back(to_string(address));
-            }
+        else {
+            symbol_name.erase(symbol_name.begin() + index);
+            symbol_value.erase(symbol_value.begin() + index);
+            symbol_name.push_back(str);
+            symbol_value.push_back(to_string(address));
         }
-        
     }
+        
     else {
         ;
-        //cout<< "Error: "<< str<<" is not defined; zero used"<<endl;
-        // symbol_value.at(index) = to_string(0);
     }
 }
-std::string trim(const std::string& str,
-                 const std::string& whitespace = " \t")
-{
-    const auto strBegin = str.find_first_not_of(whitespace);
-    if (strBegin == std::string::npos)
-        return ""; // no content
 
-    const auto strEnd = str.find_last_not_of(whitespace);
-    const auto strRange = strEnd - strBegin + 1;
 
-    return str.substr(strBegin, strRange);
-}
-
-std::string reduce(const std::string& str,
-                   const std::string& fill = " ",
-                   const std::string& whitespace = " \t\n")
-{
-    // trim first
-    auto result = trim(str, whitespace);
-
-    // replace sub ranges
-    auto beginSpace = result.find_first_of(whitespace);
-    while (beginSpace != std::string::npos)
-    {
-        const auto endSpace = result.find_first_not_of(whitespace, beginSpace);
-        const auto range = endSpace - beginSpace;
-
-        result.replace(beginSpace, range, fill);
-
-        const auto newStart = beginSpace + fill.length();
-        beginSpace = result.find_first_of(whitespace, newStart);
-    }
-
-    return result;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool is_digits(const std::string &str)
 {
     return str.find_first_not_of("0123456789") == std::string::npos;
 }
 
-/*
- * Erase First Occurrence of given  substring from main string.
- */
-void eraseSubStr(std::string & mainStr, const std::string & toErase)
-{
-    // Search for the substring in string
-    size_t pos = mainStr.find(toErase);
-    if (pos != std::string::npos)
-    {
-        // If found then erase it from string
-        mainStr.erase(pos, toErase.length());
-    }
-}
+
+
 int line_num(string str){
     ifstream f;
     string buffer;
@@ -351,14 +287,14 @@ int line_num(string str){
     
     f.open(filename);
     while(getline(f, buffer)){
-        //cout<<buffer;
+        
         offset = buffer.find(str);
 
         if (offset != -1){
             return i;
         }
         else{
-            //getline(f, buffer);
+        
             i++;
             continue;
         }
@@ -370,19 +306,18 @@ int getOffset(string str){
     ifstream f;
     string buffer;
     int offset;
-    //int i = 1;
+    
     
     f.open(filename);
     while(getline(f, buffer)){
-        //cout<<buffer;
+        
         offset = buffer.find(str);
-        //cout<< buffer<<endl;
+        
         if (offset != -1){
             return offset + 1;
         }
         else{
-            //getline(f, buffer);
-            //i++;
+           
             continue;
         }
 
@@ -397,72 +332,46 @@ void print_parse_error(string str, string error_type){
 }
 
 void pass1(){
-    string str_tmp = "";
-    char delim[] = " \t\n";
-    char *tok_bck;
-    char *tok;
-    char *next_tok_char;
-    string next_tok = "empty";
-    string last_tok = "empty";
-    char *dup;
-    char *dup1;
-    int module_size = -100;
-    int module = 0; 
-    int flag_module_start = -1;
-    int count_module = 0;
+    string next_tok;
+    string last_tok;
+    string str_tok;
+    
     vector<vector <string> > flag_symb_val;
-
+    vector<string > str;
+    vector<string > str_tmp;
+    
     int part_num = 0;
     int part_size = 0;
   
     ifstream f;
     string buffer;
-    string str;
     f.open(filename);
-    while(getline(f, buffer)){
-        for(int i = 0; i < buffer.length(); i ++){
-            str.push_back(buffer.at(i));
-        }
-        str.push_back(' ');
-    }
+
+
+    copy(istream_iterator<string>(f),
+    istream_iterator<string>(),
+    back_inserter(str));
+
     f.close();
     // Edge case:
-    if (str.length() == 2){
-        str_tmp = str;
-        dup = strdup(str.c_str());
-        tok = strtok(dup, delim);
-        std::string str_tok = std::string(tok);
-        free(dup);
-        if(!is_digits(str_tok)){
-            print_parse_error(str_tok, "NUM_EXPECTED");
-        }
-        else{
-            cout << "Parse Error line " << 1 << " offset " << 2 << ": " << "SYM_EXPECTED" << endl;
-            exit(1);
-        }
-    }
-    while(str.length() > 1){
-        str_tmp = str;
-        dup = strdup(str.c_str());
-        tok = strtok(dup, delim);
-        std::string str_tok = std::string(tok);
-        free(dup);
-
-        eraseSubStr(str_tmp, str_tok);
-        dup1 = strdup(str_tmp.c_str());
-        next_tok_char = strtok(dup1, delim);
-        std::string next_tok = std::string(next_tok_char);
-        free(dup1); 
-        // if (reduce(str_tmp).length() < -11){
-        //     next_tok="TAMAM";
-        // }
-        // else{
-        //     dup1 = strdup(str_tmp.c_str());
-        //     next_tok_char = strtok(dup1, delim);
-        //     std::string next_tok = std::string(next_tok_char);
-        //     free(dup1); 
-        // }
-
+    // if (str.length() == 2){
+    //     str_tmp = str;
+    //     dup = strdup(str.c_str());
+    //     tok = strtok(dup, delim);
+    //     std::string str_tok = std::string(tok);
+    //     free(dup);
+    //     if(!is_digits(str_tok)){
+    //         print_parse_error(str_tok, "NUM_EXPECTED");
+    //     }
+    //     else{
+    //         cout << "Parse Error line " << 1 << " offset " << 2 << ": " << "SYM_EXPECTED" << endl;
+    //         exit(1);
+    //     }
+    // }
+    while(str.size() > 0){
+ 
+        str_tok = str.at(0);
+        next_tok = str.at(1);
 
         if (part_size == 0){
             if(!is_digits(str_tok)){
@@ -471,6 +380,7 @@ void pass1(){
             else{
                 part_size = stoi(str_tok);
                 part_num++;
+                str.erase(str.begin());
                 if (part_size > 16){
                     if (part_num % 3 == 1){
                         print_parse_error(str_tok, "TOO_MANY_DEF_IN_MODULE");   
@@ -516,10 +426,7 @@ void pass1(){
                     symbol_name_duplicated_flag.push_back(0);
                 }
                 symbol_name.push_back(str_tok);
-                // if (next_tok == "TAMAM"){
-                //     cout<<"str_tok_def: "<<str_tok;
-                //     print_parse_error(str_tok, "NUM_EXPECTED");
-                // }
+                
                 if(!is_digits(next_tok)){
                     print_parse_error(next_tok, "NUM_EXPECTED");
                 }
@@ -528,7 +435,8 @@ void pass1(){
                 symbol_module_number.push_back(to_string(part_num / 3 + 1));
 
                 
-                str = str_tmp;
+                str.erase(str.begin());
+                str.erase(str.begin());
                 part_size--;
             }
             else if (part_num % 3 == 2){
@@ -539,6 +447,7 @@ void pass1(){
                 if (str_tok.length() > 17){
                     print_parse_error(str_tok, "SYM_TOO_LONG");
                 }
+                str.erase(str.begin());
                 part_size--;
             }
             else {
@@ -549,103 +458,70 @@ void pass1(){
                 else{
                     print_parse_error(str_tok, "ADDR_EXPECTED");
                 }
-                // if (next_tok == "TAMAM"){
-                //     cout<<"str_tok_prog: "<<str_tok;
-                //     print_parse_error(str_tok, "NUM_EXPECTED");
-                // }
+                
                 if(!is_digits(next_tok)){
                     print_parse_error(next_tok, "NUM_EXPECTED");
                 }
-                str = str_tmp;
+                str.erase(str.begin());
+                str.erase(str.begin());
                 part_size--;
             }
         }
-        dup = strdup(str.c_str());
-        tok = strtok(dup, delim);
-        int start_position_to_erase = str.find(tok);
-        str.erase(start_position_to_erase, strlen(tok));
-        last_tok = str_tok;
-        str = reduce(str);
+
     }
     unused_symbol_name = symbol_name;
     unused_symbol_module_number = symbol_module_number;
 
-    // if (symbol_value.size() > 0){
-    //     for (int i = 0; i < symbol_value.size(); i++){
-    //         if (symbol_value.at(i) == "-"){
-    //             if (std::find(unused_symbol_name.begin(), unused_symbol_name.end(), symbol_name.at(i)) != unused_symbol_name.end()){
-    //                 int index = find_symbol_index(unused_symbol_name, symbol_name.at(i));
-    //                 unused_symbol_name.erase(unused_symbol_name.begin() + index); 
-    //             }
-    //         }
-    //     }
-    // }
     print_symbol_table();
 }
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ pass2 update start
-void pass2(){
-    string str_tmp = "";
-    char delim[] = " \t\n";
-    char *tok_bck;
-    char *tok;
-    char *next_tok_char;
-    string next_tok = "empty";
-    string last_tok = "empty";
-    char *dup;
-    char *dup1;
-    int module_size = -100;
-    int module = 0; 
-    int flag_module_start = -1;
-    int count_module = 0;
-    int module_size_holder = 0;
-    int flag = 0;
-    //vector<vector <string> > flag_symb_val;
 
+void pass2(){
+    string str_tok;
+    string next_tok; 
+    string last_tok; 
+    
+    int module_size_holder = 0;
+    
+    vector<string> str;
     int part_num = 0;
     int part_size = 0;
   
     ifstream f;
     string buffer;
-    string str;
+    //string str;
     f.open(filename);
-    while(getline(f, buffer)){
-        for(int i = 0; i < buffer.length(); i ++){
-            str.push_back(buffer.at(i));
-        }
-        str.push_back(' ');
-    }
+    copy(istream_iterator<string>(f),
+    istream_iterator<string>(),
+    back_inserter(str));
+   
     f.close();
-    while(str.length() > 1){
-        str_tmp = str;
-        dup = strdup(str.c_str());
-        tok = strtok(dup, delim);
-        std::string str_tok = std::string(tok);
-        free(dup);
 
-        eraseSubStr(str_tmp, str_tok);
-        dup1 = strdup(str_tmp.c_str());
-        next_tok_char = strtok(dup1, delim);
-        std::string next_tok = std::string(next_tok_char);
-        free(dup1); 
-
+    while(str.size() > 0){
+         
+        str_tok = str.at(0);
+        next_tok = str.at(1);
 
         if (part_size == 0){
             part_size = stoi(str_tok);
             relative_offSet = stoi(memory);
             module_size_holder = part_size;
             part_num++;
+            str.erase(str.begin());
             
         }       
         else{
             if (part_num % 3 == 1){
                 // we are in the def list
-                str = str_tmp;
+                // str = str_tmp;
+                str.erase(str.begin());
+                str.erase(str.begin());
                 part_size--;
             }
             else if (part_num % 3 == 2){
                 // we are in the use list
                 use_list.push_back(str_tok);
                 flag_uselist.push_back(0);
+                str.erase(str.begin());
                 part_size--;
             }
             else {
@@ -653,7 +529,7 @@ void pass2(){
                 if(str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
                     if (str_tok == "E"){
                         E_Instruction(stoi(next_tok));
-                        //flag_E = 1;
+                        
                     }
                     else if(str_tok == "R"){
                         R_Instruction(stoi(next_tok), module_size_holder);
@@ -665,15 +541,16 @@ void pass2(){
                         A_Instruction(stoi(next_tok));
                     }
                 }
-                str = str_tmp;
+                
+                str.erase(str.begin());
+                str.erase(str.begin());
                 part_size--;
                 if (part_size == 0){
-                    //cout<< "str.length "<<  str.length() << endl;
+                    
                     if (!flag_uselist.empty()){
                         for (int i = 0; i < flag_uselist.size(); i++){
                             if(flag_uselist.at(i) == 0){
-                                // cout << use_list.at(i);
-                                // int index = find_symbol_index(symbol_name, use_list.at(i));
+                               
                                 cout<< '\n';
                                 cout<<"Warning: Module "<< part_num / 3 << ": "<< use_list.at(i) <<" appeared in the uselist but was not actually used"<<endl;
                                 cout<< '\n';
@@ -682,19 +559,13 @@ void pass2(){
                     }
                     use_list.clear();
                     flag_uselist.clear();
-                    flag = 0;
-                    
+                
 
 
                 }
             }
         }
-        dup = strdup(str.c_str());
-        tok = strtok(dup, delim);
-        int start_position_to_erase = str.find(tok);
-        str.erase(start_position_to_erase, strlen(tok));
-        last_tok = str_tok;
-        str = reduce(str);
+        
     }
 
     if (unused_symbol_name.size()>0){
@@ -715,5 +586,5 @@ int main(int argc, char** argv){
     relative_offSet = 0;
     cout<<"Memory Map"<< endl;
     pass2();
-     return 0;
+    return 0;
 }
