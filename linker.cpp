@@ -489,7 +489,7 @@ void pass1(){
                         if (stoi(symbol_module_number.at(i)) == part_num / 3){
                             if (stoi(symbol_value_absolute.at(i)) > part_size - 1){
                                 if (symbol_name_duplicated_flag.at(i) != 2){
-                                    cout<< "Warning: Module " << part_num / 3 << ": "<< symbol_name.at(i)  << " too big " << symbol_value.at(i) << " (max=" << part_size - 1 << ") assume zero relative"<< endl;
+                                    cout<< "Warning: Module " << part_num / 3 << ": "<< symbol_name.at(i)  << " too big " << symbol_value_absolute.at(i) << " (max=" << part_size - 1 << ") assume zero relative"<< endl;
                                     symbol_value.at(i) = to_string(stoi(symbol_value.at(i)) - stoi(symbol_value_absolute.at(i)));
                                 }
                             }
