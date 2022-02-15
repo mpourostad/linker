@@ -20,7 +20,9 @@ int unused_index = -1;
 string memory; 
 vector<string> use_list;
 vector<string> symbol_name;
+vector<int> symbol_name_duplicated_flag;
 vector<string> symbol_value;
+vector<string> symbol_value_absolute;
 vector<string> symbol_module_number;
 vector<string> unused_symbol_name;
 vector<string> unused_symbol_module_number;
@@ -37,9 +39,6 @@ void error_message(int ruleBroken){
 		if (ruleBroken == 6) {
 			cout<< "Error: External address exceeds length of uselist; treated as immediate"<<endl;
 		}
-		// if (ruleBroken==3) {
-		// 	cout<< ("Error: " + sym + " is not defined; zero used")<<endl;
-		// }
 		if (ruleBroken==2) {
 			cout<< "Error: This variable is multiple times defined; first value used"<<endl;
 		}
@@ -49,16 +48,6 @@ void error_message(int ruleBroken){
 		if (ruleBroken==11) {
 			cout<< "Error: Illegal opcode; treated as 9999"<<endl;
 		}
-
-		// if (ruleBroken==5) {
-		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" to big "+to_string(address)+" (max="+to_string(max)+") assume zero relative")<<endl;
-		// }
-		// if (ruleBroken==7) {
-		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" appeared in the uselist but was not actually used")<<endl;
-		// }
-		// if (ruleBroken==4) {
-		// 	return ("Warning: Module "+to_string(module+1)+": "+sym+" was defined but never used")<<endl;
-		// 
 }
 
 void print_vector_string(vector<string> vec){
@@ -102,22 +91,18 @@ int find_symbol_index(vector<string> vec_var ,string symb){
     return distance(vec_var.begin(), itr);
 }
 void print_symbol_table(){
-    //int num = symbolVal + offSet;
     cout<< "Symbol Table"<< endl;
-    for (int i = 0; i < symbol_value.size(); i++){
-        if(find(deflist.begin(), deflist.end(), symbol_name.at(i)) != deflist.end()) {
+    for (int i = 0; i < symbol_name.size(); i++){
+        if(symbol_name_duplicated_flag.at(i) == 1) {
             cout<< symbol_name.at(i) << "=" << symbol_value.at(i) << " ";
             error_message(2);
-        }
-        else if (symbol_value.at(i) == "-"){
-            ;
-        }
-        else{
+        } else if (symbol_name_duplicated_flag.at(i) == 0) {
             cout<< symbol_name.at(i) << "=" << symbol_value.at(i) << endl;
         }
     }
     cout<<'\n';
 }
+
 int replace(int operand, int absolute_address){
     int temp = operand / 1000;
     return ((temp * 1000) + absolute_address);
@@ -399,7 +384,12 @@ int getOffset(string str){
     }
     return -1;
 }
-
+void print_parse_error(string str, string error_type){
+    int offset = getOffset(str);
+    int line = line_num(str);
+    cout << "Parse Error line " << line << " offset " << offset << ": " << error_type << endl;
+    exit(1);
+}
 
 void pass1(){
     string str_tmp = "";
@@ -407,7 +397,6 @@ void pass1(){
     char *tok_bck;
     char *tok;
     char *next_tok_char;
-    // string last_tok = "gooz_init";
     string next_tok = "empty";
     string last_tok = "empty";
     char *dup;
@@ -416,28 +405,37 @@ void pass1(){
     int module = 0; 
     int flag_module_start = -1;
     int count_module = 0;
-    //int flag_symb = -1;
     vector<vector <string> > flag_symb_val;
-    int khar = -100;
-    int gav = -100;
-    
-    // int module_size_holder = 0;
-    // int warning = 0;
+
+    int part_num = 0;
+    int part_size = 0;
   
     ifstream f;
     string buffer;
     string str;
-    //int relative_offset = 0;
     f.open(filename);
     while(getline(f, buffer)){
-        //cout<<buffer;
         for(int i = 0; i < buffer.length(); i ++){
             str.push_back(buffer.at(i));
         }
         str.push_back(' ');
     }
     f.close();
-    //cout << str << endl;
+    // Edge case:
+    if (str.length() == 2){
+        str_tmp = str;
+        dup = strdup(str.c_str());
+        tok = strtok(dup, delim);
+        std::string str_tok = std::string(tok);
+        free(dup);
+        if(!is_digits(str_tok)){
+            print_parse_error(str_tok, "NUM_EXPECTED");
+        }
+        else{
+            cout << "Parse Error line " << 1 << " offset " << 2 << ": " << "SYM_EXPECTED" << endl;
+            exit(1);
+        }
+    }
     while(str.length() > 1){
         str_tmp = str;
         dup = strdup(str.c_str());
@@ -449,180 +447,135 @@ void pass1(){
         dup1 = strdup(str_tmp.c_str());
         next_tok_char = strtok(dup1, delim);
         std::string next_tok = std::string(next_tok_char);
-        free(dup1);
-///////////////////////////////////////////////////
-        if (module_size == -100){
-            
-            module_size = stoi(str_tok);
-            if (stoi(str_tok) > 16){
-                int offset = getOffset(str_tok);
-                int line = line_num(str_tok);
-                cout << "Parse Error line " << line << " offset " << offset << ": TOO_MANY_USE_IN_MODULE";
-                exit(1);
-            }
-            flag_module_start = 1;
-        }
-        if (module_size > 0){
-            if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
-                // if (is_digits(str_tok)  && symbol_name.size() > 0 && (!is_digits(next_tok))){
-                //     if (last_tok == symbol_name.at(symbol_name.size() - 1)){
-                //         cout<< "last_tok "<< last_tok<<endl;
-                //         cout<< str_tok<<endl;
-                //         int number = stoi(str_tok) + stoi(memory);
-                //         set_symbolvalue(last_tok, number);
-                //     }
-                if (is_digits(str_tok) && ((!is_digits(next_tok)))){
-                    int number = stoi(str_tok) + stoi(memory);
-                    if (!(is_digits(last_tok))){
-                        set_symbolvalue(last_tok, number);
-                        if (std::find(symbol_name.begin(), symbol_name.end(), last_tok) != symbol_name.end()){
-                            symbol_module_number.push_back(to_string(count_module + 1));
-                            vector<string> temp;
-                            temp.push_back(str_tok); 
-                            temp.push_back(last_tok);
-                            flag_symb_val.push_back(temp);                         
-                        }
-                        
-                    }   
-                    
-                }
+        free(dup1); 
+        // if (reduce(str_tmp).length() < -11){
+        //     next_tok="TAMAM";
+        // }
+        // else{
+        //     dup1 = strdup(str_tmp.c_str());
+        //     next_tok_char = strtok(dup1, delim);
+        //     std::string next_tok = std::string(next_tok_char);
+        //     free(dup1); 
+        // }
 
-                else {
-                    if (std::find(symbol_name.begin(), symbol_name.end(), str_tok) != symbol_name.end()){
-                        ;
+
+        if (part_size == 0){
+            if(!is_digits(str_tok)){
+                print_parse_error(str_tok, "NUM_EXPECTED");
+            }
+            else{
+                part_size = stoi(str_tok);
+                part_num++;
+                if (part_size > 16){
+                    if (part_num % 3 == 1){
+                        print_parse_error(str_tok, "TOO_MANY_DEF_IN_MODULE");   
+                    }
+                    else if (part_num % 3 == 2){
+                        print_parse_error(str_tok, "TOO_MANY_USE_IN_MODULE");
                     }
                     else{
-                        symbol_name.push_back(str_tok);
-
-                        symbol_value.push_back("-");
+                        if (part_size + stoi(memory) > Max_Memory){
+                            print_parse_error(str_tok, "TOO_MANY_INSTR");
+                        }
                     }
-                    module_size -= 1;
                 }
-            }
-            if (str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
-                //cout << "alan: " << str_tok <<" next_tok: " << next_tok <<" rel: " << relative_offSet <<endl;
-                update_memory();
-                str = str_tmp;
-                // cout<<  "count_module " << count_module << endl;
-                if (flag_module_start == 1){
-                   
-                    flag_module_start = -1;
-                    count_module++;
-                    //  cout<<  "count_module " << count_module << endl;
-                    module = module_size;
-                    if (!flag_symb_val.empty()){
-                        for(int i = 0; i < flag_symb_val.size(); i++){
-                            if (stoi(flag_symb_val[i][0]) > module ){
-                                cout<< "Warning: Module " << count_module << ": "<< flag_symb_val[i][1]  << " too big " << flag_symb_val[i][0] << " (max=" << module_size - 1 << ") assume zero relative"<< endl;
-                                int index = find_symbol_index(symbol_name, flag_symb_val[i][1]);
-                                symbol_value.at(index) = to_string(stoi( symbol_value.at(index)) - stoi(flag_symb_val[i][0]));
+                if (part_num % 3 == 0){
+                    for(int i = 0; i < symbol_value.size(); i++){
+                        if (stoi(symbol_module_number.at(i)) == part_num / 3){
+                            if (stoi(symbol_value_absolute.at(i)) > part_size - 1){
+                                if (symbol_name_duplicated_flag.at(i) != 2){
+                                    cout<< "Warning: Module " << part_num / 3 << ": "<< symbol_name.at(i)  << " too big " << symbol_value.at(i) << " (max=" << part_size - 1 << ") assume zero relative"<< endl;
+                                    symbol_value.at(i) = to_string(stoi(symbol_value.at(i)) - stoi(symbol_value_absolute.at(i)));
+                                }
                             }
                         }
-                        flag_symb_val.clear();
-                            
                     }
-
                 }
-                module_size -= 1;
             }
-            std::string s;
-            for (const auto &piece : symbol_name) s += piece;
         }
         else{
-            //cout << "module_size" << module_size << endl;
-            relative_offSet = stoi(memory);
-            if (is_digits(str_tok)){// && str_tok != "0"){ //////////////////////////////////////////(input 5 isn't correct with this condition. not sure why it's been here)
-                if (is_digits(next_tok)){
-                    int tmp = stoi(str_tok) + stoi(memory);
-                    
-                    //symbol_value.push_back(to_string(tmp));
-                    
-                    set_symbolvalue(last_tok, tmp);
-                    if (std::find(symbol_name.begin(), symbol_name.end(), last_tok) != symbol_name.end()){
-                        symbol_module_number.push_back(to_string(count_module + 1));
-                        vector<string> temp;
-                        temp.push_back(str_tok); 
-                        temp.push_back(last_tok);
-                        flag_symb_val.push_back(temp);  
-                    }
-
-                    module_size = -100;
-                    //flag_module_start = -1;
+            if (part_num % 3 == 1){
+                // we are in the def list
+                if(is_digits(str_tok)){
+                    print_parse_error(str_tok, "SYM_EXPECTED");
+                }
+                if (str_tok.length() > 17){
+                    print_parse_error(str_tok, "SYM_TOO_LONG");
+                }
+                if(std::find(symbol_name.begin(), symbol_name.end(), str_tok) != symbol_name.end()) {
+                    symbol_name_duplicated_flag.push_back(2);
+                    int index = find_symbol_index(symbol_name, str_tok);
+                    symbol_name_duplicated_flag.at(index) = 1;
                 }
                 else{
-                    module_size = stoi(str_tok);
-                    if (stoi(str_tok) > 16){
-                        int offset = getOffset(str_tok);
-                        int line = line_num(str_tok);
-                        cout << "Parse Error line " << line << " offset " << offset << ": TOO_MANY_USE_IN_MODULE";
-                        exit(1);
-                    }
-                    flag_module_start = 1;
-                    //module_size_holder = module_size;
-                    
+                    symbol_name_duplicated_flag.push_back(0);
                 }
+                symbol_name.push_back(str_tok);
+                // if (next_tok == "TAMAM"){
+                //     cout<<"str_tok_def: "<<str_tok;
+                //     print_parse_error(str_tok, "NUM_EXPECTED");
+                // }
+                if(!is_digits(next_tok)){
+                    print_parse_error(next_tok, "NUM_EXPECTED");
+                }
+                symbol_value.push_back(to_string(stoi(next_tok) + stoi(memory)));
+                symbol_value_absolute.push_back(to_string(stoi(next_tok)));
+                symbol_module_number.push_back(to_string(part_num / 3 + 1));
+
+                
+                str = str_tmp;
+                part_size--;
+            }
+            else if (part_num % 3 == 2){
+                // we are in the use list
+                if(is_digits(str_tok)){
+                    print_parse_error(str_tok, "SYM_EXPECTED");
+                }
+                if (str_tok.length() > 17){
+                    print_parse_error(str_tok, "SYM_TOO_LONG");
+                }
+                part_size--;
+            }
+            else {
+                // we are in the prog list
+                if(str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
+                    update_memory();
+                }
+                else{
+                    print_parse_error(str_tok, "ADDR_EXPECTED");
+                }
+                // if (next_tok == "TAMAM"){
+                //     cout<<"str_tok_prog: "<<str_tok;
+                //     print_parse_error(str_tok, "NUM_EXPECTED");
+                // }
+                if(!is_digits(next_tok)){
+                    print_parse_error(next_tok, "NUM_EXPECTED");
+                }
+                str = str_tmp;
+                part_size--;
             }
         }
-        //insert_symbolvalue("z");
-/////////////////////////////////////////////////////
         dup = strdup(str.c_str());
         tok = strtok(dup, delim);
         int start_position_to_erase = str.find(tok);
         str.erase(start_position_to_erase, strlen(tok));
         last_tok = str_tok;
         str = reduce(str);
-
     }
-    //////////////////////////////////////////////////////////////////
-    // for(int i = 0; i < flag_symb_val.size(); i++){
-    //     for (int j = 0; j < flag_symb_val.at(i).size(); j++){
-    //         cout<< "sym_val " << flag_symb_val[i][j] << endl;
-    //     }
-    // }
-    //////////////////////////////////////////////////////////////////
     unused_symbol_name = symbol_name;
     unused_symbol_module_number = symbol_module_number;
-    if(!symbol_name.empty()){
-        for (int i = 0; i < symbol_name.size(); i++){
-            //cout<<  "symb length : "<<symbol_name.at(i).length() << endl;;
-            if (symbol_name.at(i).length() > 17){
-                //cout << "khar";
-                int offset = getOffset(symbol_name.at(i));
-                int line = line_num(symbol_name.at(i));
-                cout << "Parse Error line " << line << " offset " << offset << ": SYM_TOO_LONG";
-                exit(1);
-            }
-        }
-    }
+
     if (symbol_value.size() > 0){
         for (int i = 0; i < symbol_value.size(); i++){
             if (symbol_value.at(i) == "-"){
                 if (std::find(unused_symbol_name.begin(), unused_symbol_name.end(), symbol_name.at(i)) != unused_symbol_name.end()){
-                    //cout << "thiiiiiiiiis";
                     int index = find_symbol_index(unused_symbol_name, symbol_name.at(i));
-                    //cout<< "index "<< index<<endl;
                     unused_symbol_name.erase(unused_symbol_name.begin() + index); 
                 }
             }
         }
     }
-    
-    
     print_symbol_table();
-    //+++++++++++++++++++++++++++++++++++++++
-    // cout << symbol_module_number.size() << endl;
-    //cout << unused_symbol_name.empty() << endl;
-    // if (unused_symbol_name.size() != 0){
-    //     for (int i = 0; i < unused_symbol_name.size(); i++){
-    //         cout<< "symbol: "<< unused_symbol_name.at(i)<< endl;
-    //         //cout<< "module number " << symbol_module_number.at(i) << endl;
-            
-    //     }
-    //     cout<< "--------------------" << endl;
-    // }
-
-
-   // ++++++++++++++++++++++++++++++++++++++++++
 }
 
 void pass2(){
@@ -631,7 +584,6 @@ void pass2(){
     char *tok_bck;
     char *tok;
     char *next_tok_char;
-    // string last_tok = "gooz_init";
     string next_tok = "gooz_init";
     string last_tok = "whatever";
     char *dup;
@@ -648,18 +600,8 @@ void pass2(){
     ifstream f;
     string buffer;
     string str;
-    //int relative_offset = 0;
-    
-
-    // for (int i = 0; i < symbol_value.size(); i++){
-    //     cout<<"symbol_value_"<< i<< ": "<<symbol_value.at(i)<<endl;
-    // }
-    // for (int i = 0; i < unused_symbol_name.size(); i++){
-    //     cout<<"unused_symbol_name_"<< i<< ": "<<unused_symbol_name.at(i)<<endl;
-    // }
     f.open(filename);
     while(getline(f, buffer)){
-        //cout<<buffer;
         for(int i = 0; i < buffer.length(); i ++){
             str.push_back(buffer.at(i));
         }
@@ -679,15 +621,9 @@ void pass2(){
         next_tok_char = strtok(dup1, delim);
         std::string next_tok = std::string(next_tok_char);
         free(dup1);
-        //cout<< "next tok "<< next_tok<< endl;
-///////////////////////////////////////////////////
         if (module_size == -100){
-            // if (!(isdigit(tok))){
-            //     ; // Do nothing
-            // }
             module_size = stoi(str_tok);
             module_size_holder = module_size;
-
         }
         if (module_size > 0){
             if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
@@ -696,12 +632,10 @@ void pass2(){
                     ;
                 }
                 else {
-                    
                     if (!(is_digits(next_tok))){
                         
                         use_list.push_back(str_tok);
                         flag_uselist.push_back(0);
-                        //cout<< use_list.at(0)<<endl;
                     }
                     else if (module_size == 1){
                         possible_uselist_flag = true;
@@ -717,14 +651,11 @@ void pass2(){
                     count++;
                 }
                 module_size -= 1;
-                //cout << "alan: " << str_tok <<" next_tok: " << next_tok <<" rel: " << relative_offSet <<endl;
-
                 if (str_tok == "E"){
                     E_Instruction(stoi(next_tok));
                     flag_E = 1;
                 }
                 else if(str_tok == "R"){
-                    //cout<< "module_size_holder" << module_size_holder<< endl;
                     R_Instruction(stoi(next_tok), module_size_holder);
                 }
                 else if(str_tok == "I"){
@@ -734,71 +665,22 @@ void pass2(){
                     A_Instruction(stoi(next_tok));
                 }
                 str = str_tmp;
-               
             }
-            // if (module_size == 0 && str.length() == 2){
-            //     if (contains(flag_uselist, 0)){
-            //         for (int i = 0; i < flag_uselist.size(); i++){
-            //             if(flag_uselist.at(i) == 0){
-            //                 int index = find_symbol_index(symbol_name, use_list.at(i));
-            //                 //string symbol_not_used = symbol_name.at(index);
-            //                 tuple<int,string> foo (count,symbol_name.at(index));
-            //                 check_uselist.push_back(foo);
-            //             }
-            //         }
-            //     }
-            // }
-            
-            std::string s;
-            for (const auto &piece : symbol_name) s += piece;
         }
-        // else if (module_size == 1){
-
-        // }
         else{ // modul_size = 0
             relative_offSet = stoi(memory);
-            if (is_digits(str_tok)){// && str_tok != "0"){
+            if (is_digits(str_tok)){
                 if (is_digits(next_tok)){
-
-
                     possible_uselist_flag = false;
-                    // if (possible_uselist != ""){
-                    //     possible_uselist = "";
-                    // }
-                    //symbol_value.push_back(to_string(tmp));
-                    //------------------------------------------------------------- commented the next line to see if it's necessary in pass2
-                    //set_symbolvalue(last_tok, tmp);
-                    //module_size = -1;
                 }
                 else{
-                    // cout<< "khar2.0";
                     module_size = stoi(str_tok);
-                    // cout<<"module_size: "<<module_size<<endl;
                     module_size_holder = module_size;
-                    // cout<<"flag_uselist_size: "<<flag_uselist.size()<<endl;
-                    // cout<<"uselist_size: "<<use_list.size()<<endl;
-                    // for (int i = 0; i < flag_uselist.size(); i++){
-                    //     cout<<"flag_uselist_"<< i<< ": "<<flag_uselist.at(i)<<endl;
-                    //     cout<<"uselist_"<< i<< ": "<<use_list.at(i)<<endl;
-                    // }
-                    //+++old
-                    // if (contains(flag_uselist, 0) && flag_module == 1){
-                    //     cout<< "khar2";
-                    //     for (int i = 0; i < flag_uselist.size(); i++){
-                    //         if(flag_uselist.at(i) == 0){
-                    //             int index = find_symbol_index(symbol_name, use_list.at(i));
-                    //             //string symbol_not_used = symbol_name.at(index);
-                    //             tuple<int,string> foo (count,symbol_name.at(index));
-                    //             check_uselist.push_back(foo);
-                    //         }
-                    //     }
-                    // }
                     if (possible_uselist_flag){
                         use_list.push_back(possible_uselist);
                         flag_uselist.push_back(0);
                         possible_uselist_flag = false;
                     }
-
                     if (contains(flag_uselist, 0) && str.length() > 2 && flag==1){
                         for (int i = 0; i < flag_uselist.size(); i++){
                             if(flag_uselist.at(i) == 0){
@@ -806,9 +688,6 @@ void pass2(){
                                 cout<< '\n';
                                 cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
                                 cout<< '\n';
-                                //string symbol_not_used = symbol_name.at(index);
-                                // tuple<int,string> foo (count,symbol_name.at(index));
-                                // check_uselist.push_back(foo);
                             }
                         }
                     }
@@ -823,8 +702,6 @@ void pass2(){
             }
 
         }
-        //insert_symbolvalue("z");
-/////////////////////////////////////////////////////
         dup = strdup(str.c_str());
         tok = strtok(dup, delim);
         int start_position_to_erase = str.find(tok);
@@ -838,29 +715,15 @@ void pass2(){
                 int index = find_symbol_index(symbol_name, use_list.at(i));
                 cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
                 cout<< '\n';
-                //string symbol_not_used = symbol_name.at(index);
-                // tuple<int,string> foo (count,symbol_name.at(index));
-                // check_uselist.push_back(foo);
             }
         }
     }
-    // cout<< "count"<< count<< endl;
-    // cout << get<0>(check_uselist.at(0))<<endl;
-    // for (int i = 0; i < check_uselist.size() - 1; i++){
-    //     cout<<"Warning: Module "<< get<0>(check_uselist.at(i))<< ": "<< get<1>(check_uselist.at(i)) <<"appeared in the uselist but was not actually used"<<endl;
-    // }
-    
-    
     if (unused_symbol_name.size()>0){
         for (int i = 0; i < unused_symbol_name.size(); i++){
             cout<<"Warning: Module "<< unused_symbol_module_number.at(i) << ": "<<unused_symbol_name.at(i)<< " was defined but never used"<<endl;
         }
     }
 }
-
-
-///////////////////////////////////////////////////////////////////////////////////
-
 int main(int argc, char** argv){
     filename = argv[1];
 
@@ -868,9 +731,6 @@ int main(int argc, char** argv){
     relative_offSet = 0;
     
     pass1();
-//     return 0;
-// }
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ pass 2
     memory = "000";
     relative_offSet = 0;
     cout<<"Memory Map"<< endl;
