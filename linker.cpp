@@ -230,13 +230,18 @@ void E_Instruction(int operand){
         }
         else{
             flag_uselist.at(index) = 1;
-            index = find_symbol_index(symbol_name, use_list.at(index));
-            if (symbol_value.at(index) == "-"){
+            if(std::find(symbol_name.begin(), symbol_name.end(), use_list.at(index)) == symbol_name.end()) {
                 int absolute_address = 0;
                 int num = replace(operand, absolute_address);
-                cout<<memory<<": " << num<< " Error: "<< symbol_name.at(index)<< " is not defined; zero used"<<endl;
+                cout<<memory<<": " << num<< " Error: "<< use_list.at(index)<< " is not defined; zero used"<<endl;
             }
+            // index = find_symbol_index(symbol_name, use_list.at(index));
+            // if (symbol_value.at(index) == "-"){
+                
+            //     cout<<memory<<": " << num<< " Error: "<< symbol_name.at(index)<< " is not defined; zero used"<<endl;
+            // }
             else{
+                index = find_symbol_index(symbol_name, use_list.at(index));
                 int absolute_address = stoi(symbol_value.at(index));
                 int num = replace(operand, absolute_address);
                 cout<<memory<<": " << num<< endl;
@@ -565,38 +570,40 @@ void pass1(){
     unused_symbol_name = symbol_name;
     unused_symbol_module_number = symbol_module_number;
 
-    if (symbol_value.size() > 0){
-        for (int i = 0; i < symbol_value.size(); i++){
-            if (symbol_value.at(i) == "-"){
-                if (std::find(unused_symbol_name.begin(), unused_symbol_name.end(), symbol_name.at(i)) != unused_symbol_name.end()){
-                    int index = find_symbol_index(unused_symbol_name, symbol_name.at(i));
-                    unused_symbol_name.erase(unused_symbol_name.begin() + index); 
-                }
-            }
-        }
-    }
+    // if (symbol_value.size() > 0){
+    //     for (int i = 0; i < symbol_value.size(); i++){
+    //         if (symbol_value.at(i) == "-"){
+    //             if (std::find(unused_symbol_name.begin(), unused_symbol_name.end(), symbol_name.at(i)) != unused_symbol_name.end()){
+    //                 int index = find_symbol_index(unused_symbol_name, symbol_name.at(i));
+    //                 unused_symbol_name.erase(unused_symbol_name.begin() + index); 
+    //             }
+    //         }
+    //     }
+    // }
     print_symbol_table();
 }
-
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ pass2 update start
 void pass2(){
     string str_tmp = "";
     char delim[] = " \t\n";
     char *tok_bck;
     char *tok;
     char *next_tok_char;
-    string next_tok = "gooz_init";
-    string last_tok = "whatever";
+    string next_tok = "empty";
+    string last_tok = "empty";
     char *dup;
     char *dup1;
     int module_size = -100;
-    int flag = 0;
-    string possible_uselist = "";
-    bool possible_uselist_flag = false;
+    int module = 0; 
+    int flag_module_start = -1;
+    int count_module = 0;
     int module_size_holder = 0;
-    int count = 0;
-    int flag_module = 0;
-    int flag_E = 0;
-    vector<tuple <int, string> > check_uselist;
+    int flag = 0;
+    //vector<vector <string> > flag_symb_val;
+
+    int part_num = 0;
+    int part_size = 0;
+  
     ifstream f;
     string buffer;
     string str;
@@ -609,7 +616,6 @@ void pass2(){
     }
     f.close();
     while(str.length() > 1){
-
         str_tmp = str;
         dup = strdup(str.c_str());
         tok = strtok(dup, delim);
@@ -620,87 +626,68 @@ void pass2(){
         dup1 = strdup(str_tmp.c_str());
         next_tok_char = strtok(dup1, delim);
         std::string next_tok = std::string(next_tok_char);
-        free(dup1);
-        if (module_size == -100){
-            module_size = stoi(str_tok);
-            module_size_holder = module_size;
-        }
-        if (module_size > 0){
-            if (str_tok != "E" && str_tok != "A" && str_tok != "R" && str_tok != "I"){
-                
-                if (is_digits(str_tok)){
-                    ;
-                }
-                else {
-                    if (!(is_digits(next_tok))){
-                        
-                        use_list.push_back(str_tok);
-                        flag_uselist.push_back(0);
-                    }
-                    else if (module_size == 1){
-                        possible_uselist_flag = true;
-                        possible_uselist = str_tok;
-                    }
-                    module_size -= 1;
-                }
+        free(dup1); 
+
+
+        if (part_size == 0){
+            part_size = stoi(str_tok);
+            relative_offSet = stoi(memory);
+            module_size_holder = part_size;
+            part_num++;
+            
+        }       
+        else{
+            if (part_num % 3 == 1){
+                // we are in the def list
+                str = str_tmp;
+                part_size--;
             }
-            if (str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
-                flag = 1;
-                if (module_size == module_size_holder){
-                    flag_module = 1;
-                    count++;
-                }
-                module_size -= 1;
-                if (str_tok == "E"){
-                    E_Instruction(stoi(next_tok));
-                    flag_E = 1;
-                }
-                else if(str_tok == "R"){
-                    R_Instruction(stoi(next_tok), module_size_holder);
-                }
-                else if(str_tok == "I"){
-                    I_Instruction(stoi(next_tok));
-                }
-                else{
-                    A_Instruction(stoi(next_tok));
+            else if (part_num % 3 == 2){
+                // we are in the use list
+                use_list.push_back(str_tok);
+                flag_uselist.push_back(0);
+                part_size--;
+            }
+            else {
+                // we are in the prog list
+                if(str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
+                    if (str_tok == "E"){
+                        E_Instruction(stoi(next_tok));
+                        //flag_E = 1;
+                    }
+                    else if(str_tok == "R"){
+                        R_Instruction(stoi(next_tok), module_size_holder);
+                    }
+                    else if(str_tok == "I"){
+                        I_Instruction(stoi(next_tok));
+                    }
+                    else{
+                        A_Instruction(stoi(next_tok));
+                    }
                 }
                 str = str_tmp;
-            }
-        }
-        else{ // modul_size = 0
-            relative_offSet = stoi(memory);
-            if (is_digits(str_tok)){
-                if (is_digits(next_tok)){
-                    possible_uselist_flag = false;
-                }
-                else{
-                    module_size = stoi(str_tok);
-                    module_size_holder = module_size;
-                    if (possible_uselist_flag){
-                        use_list.push_back(possible_uselist);
-                        flag_uselist.push_back(0);
-                        possible_uselist_flag = false;
-                    }
-                    if (contains(flag_uselist, 0) && str.length() > 2 && flag==1){
+                part_size--;
+                if (part_size == 0){
+                    //cout<< "str.length "<<  str.length() << endl;
+                    if (!flag_uselist.empty()){
                         for (int i = 0; i < flag_uselist.size(); i++){
                             if(flag_uselist.at(i) == 0){
-                                int index = find_symbol_index(symbol_name, use_list.at(i));
+                                // cout << use_list.at(i);
+                                // int index = find_symbol_index(symbol_name, use_list.at(i));
                                 cout<< '\n';
-                                cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
+                                cout<<"Warning: Module "<< part_num / 3 << ": "<< use_list.at(i) <<" appeared in the uselist but was not actually used"<<endl;
                                 cout<< '\n';
                             }
                         }
                     }
-                    flag_E = 0;
+                    use_list.clear();
+                    flag_uselist.clear();
+                    flag = 0;
+                    
 
-                    if (flag == 1){
-                        use_list.clear();
-                        flag_uselist.clear();
-                        flag = 0;
-                    }
+
                 }
             }
-
         }
         dup = strdup(str.c_str());
         tok = strtok(dup, delim);
@@ -709,21 +696,14 @@ void pass2(){
         last_tok = str_tok;
         str = reduce(str);
     }
-    if (contains(flag_uselist, 0) && flag==1){
-        for (int i = 0; i < flag_uselist.size(); i++){
-            if(flag_uselist.at(i) == 0){
-                int index = find_symbol_index(symbol_name, use_list.at(i));
-                cout<<"Warning: Module "<< count<< ": "<< symbol_name.at(index) <<" appeared in the uselist but was not actually used"<<endl;
-                cout<< '\n';
-            }
-        }
-    }
+
     if (unused_symbol_name.size()>0){
         for (int i = 0; i < unused_symbol_name.size(); i++){
             cout<<"Warning: Module "<< unused_symbol_module_number.at(i) << ": "<<unused_symbol_name.at(i)<< " was defined but never used"<<endl;
         }
     }
 }
+
 int main(int argc, char** argv){
     filename = argv[1];
 
