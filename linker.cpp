@@ -23,6 +23,7 @@ vector<string> symbol_module_number;
 vector<string> unused_symbol_name;
 vector<string> unused_symbol_module_number;
 vector<int> flag_uselist;
+vector<string> bckup;
 
 void error_message(int ruleBroken){
 		if (ruleBroken == 8) {
@@ -293,6 +294,9 @@ int line_num(string str){
         if (offset != -1){
             return i;
         }
+        else if (f.peek() == EOF){
+            return i;
+        }
         else{
         
             i++;
@@ -306,24 +310,34 @@ int getOffset(string str){
     ifstream f;
     string buffer;
     int offset;
-    
+    int i;
     
     f.open(filename);
     while(getline(f, buffer)){
-        
+        i += buffer.size();
         offset = buffer.find(str);
         
         if (offset != -1){
             return offset + 1;
         }
         else{
-           
+           i++;
             continue;
         }
 
     }
-    return -1;
+    return i;
 }
+    //int count = 0;
+    // ifstream f; 
+    // f.open(filename);
+    // string character; int count = 0; 
+    // while (f >> str >> noskipws) {
+    //     count++;
+    // } 
+    // f.close();
+    // return count;
+    
 void print_parse_error(string str, string error_type){
     int offset = getOffset(str);
     int line = line_num(str);
@@ -331,7 +345,18 @@ void print_parse_error(string str, string error_type){
     exit(1);
 }
 
+int count_enters(string str){
+    int count = 0;
+    for (size_t i = 0; i < str.length(); i++){
+        if (str[i] == '\n'){
+            count++;
+     }
+    }
+    return count;
+}
+
 void pass1(){
+    int flag = 0;
     string next_tok;
     string last_tok;
     string str_tok;
@@ -353,6 +378,7 @@ void pass1(){
     back_inserter(str));
 
     f.close();
+    bckup =str;
     // Edge case:
     // if (str.length() == 2){
     //     str_tmp = str;
@@ -369,17 +395,22 @@ void pass1(){
     //     }
     // }
     while(str.size() > 0){
- 
-        str_tok = str.at(0);
-        next_tok = str.at(1);
-
+        if (str.size() < 2){
+            str_tok = str.at(0);
+            flag = 1;
+        }
+        else{
+            str_tok = str.at(0);
+            next_tok = str.at(1);
+        }
+       
         if (part_size == 0){
             if(!is_digits(str_tok)){
                 print_parse_error(str_tok, "NUM_EXPECTED");
             }
             else{
                 part_size = stoi(str_tok);
-                part_num++;
+                part_num++;              
                 str.erase(str.begin());
                 if (part_size > 16){
                     if (part_num % 3 == 1){
@@ -404,6 +435,15 @@ void pass1(){
                                 }
                             }
                         }
+                    }
+                    if (flag == 1){
+                        //part_num--;
+                        print_parse_error("EOF", "ADDR_EXPECTED");
+                    }
+                }
+                else if (part_num % 3 == 1){
+                    if (flag == 1){
+                        print_parse_error("EOF", "SYM_EXPECTED");
                     }
                 }
             }
@@ -434,7 +474,10 @@ void pass1(){
                 symbol_value_absolute.push_back(to_string(stoi(next_tok)));
                 symbol_module_number.push_back(to_string(part_num / 3 + 1));
 
-                
+                if (flag == 1){
+                    cout << "this" << endl;
+                    print_parse_error("EOF", "NUM_EXPECTED");
+                }
                 str.erase(str.begin());
                 str.erase(str.begin());
                 part_size--;
@@ -452,16 +495,20 @@ void pass1(){
             }
             else {
                 // we are in the prog list
+                
                 if(str_tok == "E" || str_tok == "A" || str_tok == "R" || str_tok == "I"){
                     update_memory();
                 }
                 else{
+                    
                     print_parse_error(str_tok, "ADDR_EXPECTED");
+                   
                 }
                 
                 if(!is_digits(next_tok)){
                     print_parse_error(next_tok, "NUM_EXPECTED");
                 }
+                
                 str.erase(str.begin());
                 str.erase(str.begin());
                 part_size--;
@@ -479,6 +526,8 @@ void pass2(){
     string str_tok;
     string next_tok; 
     string last_tok; 
+
+    int flag = 0;
     
     int module_size_holder = 0;
     
@@ -512,7 +561,8 @@ void pass2(){
         else{
             if (part_num % 3 == 1){
                 // we are in the def list
-                // str = str_tmp;
+                
+
                 str.erase(str.begin());
                 str.erase(str.begin());
                 part_size--;
