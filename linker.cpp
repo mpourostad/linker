@@ -23,7 +23,6 @@ vector<string> symbol_module_number;
 vector<string> unused_symbol_name;
 vector<string> unused_symbol_module_number;
 vector<int> flag_uselist;
-vector<string> bckup;
 
 void error_message(int ruleBroken){
 		if (ruleBroken == 8) {
@@ -306,6 +305,7 @@ int line_num(string str){
     }
     return -1;
 }
+
 int getOffset(string str){
     ifstream f;
     string buffer;
@@ -314,29 +314,19 @@ int getOffset(string str){
     
     f.open(filename);
     while(getline(f, buffer)){
-        i += buffer.size();
+        i = buffer.size();
         offset = buffer.find(str);
         
         if (offset != -1){
             return offset + 1;
         }
         else{
-           i++;
+        //    i++;
             continue;
         }
-
     }
-    return i;
+    return i + 1;
 }
-    //int count = 0;
-    // ifstream f; 
-    // f.open(filename);
-    // string character; int count = 0; 
-    // while (f >> str >> noskipws) {
-    //     count++;
-    // } 
-    // f.close();
-    // return count;
     
 void print_parse_error(string str, string error_type){
     int offset = getOffset(str);
@@ -345,15 +335,6 @@ void print_parse_error(string str, string error_type){
     exit(1);
 }
 
-int count_enters(string str){
-    int count = 0;
-    for (size_t i = 0; i < str.length(); i++){
-        if (str[i] == '\n'){
-            count++;
-     }
-    }
-    return count;
-}
 
 void pass1(){
     int flag = 0;
@@ -378,22 +359,6 @@ void pass1(){
     back_inserter(str));
 
     f.close();
-    bckup =str;
-    // Edge case:
-    // if (str.length() == 2){
-    //     str_tmp = str;
-    //     dup = strdup(str.c_str());
-    //     tok = strtok(dup, delim);
-    //     std::string str_tok = std::string(tok);
-    //     free(dup);
-    //     if(!is_digits(str_tok)){
-    //         print_parse_error(str_tok, "NUM_EXPECTED");
-    //     }
-    //     else{
-    //         cout << "Parse Error line " << 1 << " offset " << 2 << ": " << "SYM_EXPECTED" << endl;
-    //         exit(1);
-    //     }
-    // }
     while(str.size() > 0){
         if (str.size() < 2){
             str_tok = str.at(0);
